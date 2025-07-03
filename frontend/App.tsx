@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import TabNavigator from './app/navigation/TabNavigator';
-import { PlayerProvider } from './app/contexts/UserContext';
+import { UserProvider } from './app/contexts/UserContext';
 
-// Wrap the entire app in the PlayerProvider to share player data between screens
+// Wrap the entire app in the UserProvider to share user data between screens
 export default function App() {
   return (
-    <PlayerProvider>
+    <UserProvider>
       <TabNavigator />
-    </PlayerProvider>
+    </UserProvider>
   );
 }
+
+export const UserProviderWrapper = ({ children }: { children: ReactNode }) => {
+  return <>{children}</>;
+};
