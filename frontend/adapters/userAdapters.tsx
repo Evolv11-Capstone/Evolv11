@@ -1,28 +1,18 @@
+import { getPostOptions, fetchHandler } from '../utils/fetchingUtils'; // Utility fetch config
+import { NewUserInput, ApiResponse } from '../types/userTypes'; // Shared types
 
+// API base URL from environment
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
-import { getPostOptions, fetchHandler } from '../utils/fetchingUtils';
-
-// Define the TypeScript type for the new user
-export type NewUserPayload = {
-  name: string;
-  age: string;
-  nationality: string;
-  email: string;
-  password: string;
-  role: string;
-};
-
-// Function to send a POST request to create a new user
-export const createNewUser = async (userData: NewUserPayload) => {
-  const url = `/api/users`; // Ensure this env var is set correctly
-
-  const options = getPostOptions(userData); // Generates correct fetch options using helper
-  const [data, error] = await fetchHandler(url, options); // Uses generic fetch handler
-
-  if (error) {
-    console.error('Error creating user:', error);
-    throw error;
-  }
-
-  return data;
+/**
+ * Sends a request to create a new user using provided form data.
+ * @param userData - The form values filled in the CreateNewUser component
+ * @returns A tuple containing either the response or an error
+ */
+export const createNewUser = async (
+  userData: NewUserInput
+): Promise<[ApiResponse | null, Error | null]> => {
+  const url = `${API_BASE_URL}/users`; // Complete API route
+  const options = getPostOptions(userData); // Prepare headers and body
+  return (await fetchHandler(url, options)) as [ApiResponse | null, Error | null]; // Call the backend and return the result
 };

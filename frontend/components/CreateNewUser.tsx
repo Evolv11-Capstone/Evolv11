@@ -8,41 +8,29 @@ import {
   Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import NationalityDropdown from './NationalityDropdown'; // Import custom dropdown for nationalities
-import { createNewUser } from '../adapters/userAdapters'; // Import backend adapter function
-
-// Define allowed user roles
-type UserRole = 'coach' | 'player' | 'scout';
-
-// Define interface for form input data
-interface NewUserInput {
-  name: string;
-  age: string; // Stored as string to match DB schema
-  nationality: string; // This will be populated via dropdown (just the label)
-  email: string;
-  password: string;
-  role: UserRole;
-}
+import NationalityDropdown from './NationalityDropdown'; // Custom dropdown for country selection
+import { createNewUser } from '../adapters/userAdapters'; // Adapter for backend API
+import { NewUserInput, ApiResponse } from '../types/userTypes'; // Shared types for input and response
 
 export default function CreateNewUser() {
-  // Initialize form state with defaults
+  // Initialize form state with default values
   const [userData, setUserData] = useState<NewUserInput>({
     name: '',
     age: '',
-    nationality: '', // Will be set via dropdown
+    nationality: '',
     email: '',
     password: '',
-    role: 'player',
+    role: 'player', // Default to player
   });
 
-  // Generic handler to update form state on input
+  // Generic function to update form state when inputs change
   const handleChange = (field: keyof NewUserInput, value: string) => {
     setUserData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Form submit logic
+  // Submit handler that validates and sends form data
   const handleSubmit = async () => {
-    // Basic validation for required fields
+    // Simple validation check
     if (
       !userData.name ||
       !userData.age ||
@@ -54,18 +42,17 @@ export default function CreateNewUser() {
       return;
     }
 
-    try {
-      // Call adapter to POST data to backend
-      const response = await createNewUser(userData);
+    // Call the adapter to send the request
+    const [data, error]: [ApiResponse | null, Error | null] = await createNewUser(userData);
 
-      if (response.success) {
-        Alert.alert('User created successfully!');
-        // Optionally reset form or navigate away
-      } else {
-        Alert.alert('Something went wrong.');
-      }
-    } catch (error) {
-      Alert.alert('Error creating user:', (error as Error).message);
+    // Handle response
+    if (error) {
+      Alert.alert('Error creating user:', error.message);
+    } else if (data?.success) {
+      Alert.alert('User created successfully!');
+      // Optionally clear form or redirect
+    } else {
+      Alert.alert('Something went wrong.');
     }
   };
 
@@ -73,7 +60,7 @@ export default function CreateNewUser() {
     <View style={styles.container}>
       <Text style={styles.title}>Create New User</Text>
 
-       {/* Role Dropdown */}
+      {/* Role Picker */}
       <Text style={styles.label}>Role:</Text>
       <Picker
         selectedValue={userData.role}
@@ -85,9 +72,8 @@ export default function CreateNewUser() {
         <Picker.Item label="Scout" value="scout" />
       </Picker>
 
-      {/* Full Name Field */}
-      {/* Label above the dropdown */}
-            <Text style={styles.label}>Name:</Text>
+      {/* Name Field */}
+      <Text style={styles.label}>Name:</Text>
       <TextInput
         placeholder="Full Name"
         style={styles.input}
@@ -96,8 +82,7 @@ export default function CreateNewUser() {
       />
 
       {/* Age Field */}
-      {/* Label above the dropdown */}
-            <Text style={styles.label}>Age:</Text>
+      <Text style={styles.label}>Age:</Text>
       <TextInput
         placeholder="Age"
         keyboardType="numeric"
@@ -108,15 +93,13 @@ export default function CreateNewUser() {
 
       {/* Nationality Dropdown */}
       <NationalityDropdown
-  onSelect={(selectedNationality) =>
-    handleChange('nationality', selectedNationality)
-  }
-/>
-
+        onSelect={(selectedNationality) =>
+          handleChange('nationality', selectedNationality)
+        }
+      />
 
       {/* Email Field */}
-      {/* Label above the dropdown */}
-            <Text style={styles.label}>Email:</Text>
+      <Text style={styles.label}>Email:</Text>
       <TextInput
         placeholder="Email"
         style={styles.input}
@@ -127,8 +110,7 @@ export default function CreateNewUser() {
       />
 
       {/* Password Field */}
-      {/* Label above the dropdown */}
-            <Text style={styles.label}>Password:</Text>
+      <Text style={styles.label}>Password:</Text>
       <TextInput
         placeholder="Password"
         style={styles.input}
@@ -143,7 +125,7 @@ export default function CreateNewUser() {
   );
 }
 
-// Basic styling
+// Styling
 const styles = StyleSheet.create({
   container: {
     flex: 1,

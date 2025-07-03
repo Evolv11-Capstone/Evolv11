@@ -1,18 +1,18 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-     "jsx": "react-native",        // or "react" if you're using React DOM
-    "types": ["react", "react-native"], // include these types
-    "lib": ["esnext", "dom"],     // ensures JSX.Element is available
+    "jsx": "react-native",
+    "types": ["react", "react-native"],
+    "lib": ["esnext", "dom"],
     "strict": true,
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
-, "utils/fetchingUtils.js"  ]
+    "**/*.tsx",
+    "utils/fetchingUtils.tsx",
+    "types/env.d.ts"      // 👈 Add this line
+  ]
 }
