@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { usePlayer } from '../app/contexts/PlayerContext';
+import { usePlayer } from '../app/contexts/UserContext';
 import PlayerCard from './PlayerCard';
 
 // This screen displays the player card after creation
