@@ -10,7 +10,3 @@ export default function App() {
     </UserProvider>
   );
 }
-
-export const UserProviderWrapper = ({ children }: { children: ReactNode }) => {
-  return <>{children}</>;
-};
