@@ -1,15 +1,18 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "jsx": "react-native",
+    "types": ["react", "react-native"],
+    "lib": ["esnext", "dom"],
     "strict": true,
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "utils/fetchingUtils.tsx",
+    "types/env.d.ts"      // 👈 Add this line
   ]
 }
