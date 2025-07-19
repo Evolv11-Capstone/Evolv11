@@ -1,54 +1,59 @@
-const knex = require('../db/knex');          // Import knex instance for DB access
-const bcrypt = require('bcryptjs'); // Library for hashing passwords
-const SALT_ROUNDS = 12;                      // Number of salt rounds for hashing
+const knex = require('../db/knex'); // Import Knex instance for DB queries
+const bcrypt = require('bcryptjs'); // Import bcrypt for password hashing
+
+const SALT_ROUNDS = 12; // Defines strength of bcrypt hashing
 
 class User {
-  // Private property to prevent exposing the password hash
+  // Private field to protect access to password hash
   #passwordHash = null;
 
   /**
-   * Constructor: builds a User instance from raw DB data
-   * @param {object} userData - Object with user fields from DB
+   * Constructor: Initializes a User instance from DB row data
+   * @param {object} userData - Raw user row data from database
    */
-  constructor({ id, name, email, age, nationality, role, password_hash }) {
+  constructor({ id, name, email, age, nationality, role, password_hash, image_url }) {
     this.id = id;
     this.name = name;
     this.email = email;
     this.age = age;
     this.nationality = nationality;
     this.role = role;
+    this.image_url = image_url || null; // Optional field for player image
     this.#passwordHash = password_hash;
   }
 
   /**
-   * Instance method to verify a password against stored hash
-   * @param {string} password - Plain text password
+   * Instance method to verify input password against stored hash
+   * @param {string} password - Plain text password from login input
+   * @returns {Promise<boolean>} - True if password is valid
    */
   isValidPassword = async (password) => {
     return await bcrypt.compare(password, this.#passwordHash);
   };
 
   /**
-   * Create a new user with hashed password
-   * @param {object} data - New user data including password
+   * Create a new user in the database
+   * @param {object} data - New user data including password and optional image_url
+   * @returns {Promise<User>} - Created User instance
    */
-  static async create({ name, email, age, nationality, role, password }) {
-    // Hash password securely
+  static async create({ name, email, age, nationality, role, password, image_url }) {
+    // Step 1: Securely hash the password
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Insert user into database and return raw result
+    // Step 2: Insert the new user into the database
     const result = await knex.raw(`
-      INSERT INTO users (name, email, age, nationality, role, password_hash)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO users (name, email, age, nationality, role, password_hash, image_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       RETURNING *
-    `, [name, email, age, nationality, role, passwordHash]);
+    `, [name, email, age, nationality, role, passwordHash, image_url || null]);
 
-    // Return new User instance with protected password
+    // Step 3: Return new User instance
     return new User(result.rows[0]);
   }
 
   /**
-   * Return a list of all users (password excluded)
+   * Get all users (excluding password hash)
+   * @returns {Promise<User[]>}
    */
   static async list() {
     const result = await knex.raw(`SELECT * FROM users`);
@@ -57,7 +62,8 @@ class User {
 
   /**
    * Find a user by ID
-   * @param {number} id - User ID
+   * @param {number} id - ID of user to retrieve
+   * @returns {Promise<User|null>}
    */
   static async find(id) {
     const result = await knex.raw(`SELECT * FROM users WHERE id = ?`, [id]);
@@ -66,8 +72,9 @@ class User {
   }
 
   /**
-   * Find a user by email (used during login or duplicate checks)
-   * @param {string} email
+   * Find a user by email
+   * @param {string} email - Email address to query
+   * @returns {Promise<User|null>}
    */
   static async findByEmail(email) {
     const result = await knex.raw(`SELECT * FROM users WHERE email = ?`, [email]);
@@ -76,12 +83,13 @@ class User {
   }
 
   /**
-   * Update user fields; only modifies provided fields
+   * Update any fields for a given user ID
    * @param {number} id - ID of user to update
-   * @param {object} updates - Fields to update
+   * @param {object} updates - Fields and values to update
+   * @returns {Promise<User|null>}
    */
   static async update(id, updates) {
-    // Build dynamic SET clause and values array
+    // Prepare dynamic SQL SET clause
     const fields = [];
     const values = [];
     let index = 1;
@@ -93,16 +101,16 @@ class User {
       }
     }
 
-    if (fields.length === 0) return null; // Nothing to update
+    if (fields.length === 0) return null; // No update fields provided
 
-    // Final query
+    // Finalize and run query
     const query = `
       UPDATE users
       SET ${fields.join(', ')}
       WHERE id = $${index}
       RETURNING *
     `;
-    values.push(id); // Add ID to end of values array
+    values.push(id);
 
     const result = await knex.raw(query, values);
     const updated = result.rows[0];
@@ -110,7 +118,8 @@ class User {
   }
 
   /**
-   * Utility method to delete all users (optional/test)
+   * Delete all users (for testing or admin cleanup)
+   * @returns {Promise<number>} - Number of rows deleted
    */
   static async deleteAll() {
     return knex('users').del();

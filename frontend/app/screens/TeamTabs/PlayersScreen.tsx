@@ -68,7 +68,7 @@ export default function PlayersScreen() {
   // Main view: list of players with navigation on tap
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Approved Players</Text>
+      <Text style={styles.title}>Squad Members</Text>
 
       <FlatList
         data={players}

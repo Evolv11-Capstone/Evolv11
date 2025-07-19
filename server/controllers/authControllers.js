@@ -8,39 +8,49 @@ const User = require('../models/User');
 // Controller to handle user registration
 exports.registerUser = async (req, res) => {
   try {
-    // Destructure relevant user fields from the request body
-    const { name, email, age, nationality, role, password } = req.body;
+    // Destructure incoming fields from the request body
+    const { name, email, age, nationality, role, password, image_url } = req.body;
 
-    // Ensure required fields are present
+    // Validate minimum required fields for all users
     if (!email || !password) {
       return res.status(400).send({ message: 'Email and password are required.' });
     }
 
-    // Call User model to create and store the user in the database
-    const user = await User.create({ name, email, age, nationality, role, password });
+    //  Enforce that 'player' users must include a profile image
+    if (role === 'player' && !image_url) {
+      return res.status(400).send({ message: 'Player image is required.' });
+    }
 
-    // Save the user's ID in the session so they're considered logged in
+    // Create user with image_url (even if it's undefined for non-players)
+    const user = await User.create({
+      name,
+      email,
+      age,
+      nationality,
+      role,
+      password,
+      image_url: image_url || null, // fallback to null if not provided
+    });
+
+    //  Store session for persistent login
     req.session.userId = user.id;
-
-    // Also store the user's role to support role-based logic across the app
     req.session.role = user.role;
 
-    // Return the created user and a success flag so frontend can proceed
+    //  Return the created user and success flag to the frontend
     res.send({ success: true, user });
 
   } catch (err) {
-    // Handle PostgreSQL unique constraint violation for duplicate email
+    // Handle unique email constraint
     if (err.code === '23505' && err.detail.includes('email')) {
       return res.status(409).send({ message: 'Email already exists.' });
     }
 
-    // Log unexpected errors for debugging purposes
+    // Log unexpected errors
     console.error('Registration failed:', err);
-
-    // Send a generic error to the frontend
     res.status(500).send({ message: 'Server error during registration.' });
   }
 };
+
 
 ///////////////////////////////
 // LOGIN USER

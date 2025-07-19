@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const playerController = require('../controllers/playerController');
+const playerControllers = require('../controllers/playerControllers');
 
-// GET /api/players/:id - fetch full details of a single player
-router.get('/:id', playerController.getPlayerById);
+// New image upload endpoint (used before user is created)
+router.post('/upload-image', playerControllers.uploadImageOnly);
+
+// Player profile route
+router.get('/:id', playerControllers.getPlayerById);
 
 module.exports = router;

@@ -27,7 +27,7 @@ const app = express();
 
 // CORS setup to allow requests from your Expo frontend
 app.use(cors({
-  origin: 'http://10.0.12.90:19006', // Expo dev server's origin
+  origin: 'http://192.168.1.202:8081', // Expo dev server's origin
   credentials: true // Allow cookies to be sent/received from frontend
 }));
 
@@ -76,6 +76,7 @@ const playerTeamRequestRoutes = require('./routes/playerTeamRequestRoutes');
 const coachTeamRequestRoutes = require('./routes/coachTeamRequestRoutes');
 const myTeamRoutes = require('./routes/myTeamRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const playerRoutes = require('./routes/playerRoutes'); // Player-specific routes
 
 ///////////////////////////////
 // Route Mounting
@@ -98,7 +99,10 @@ app.use('/api/coach_team_requests', checkAuthentication, coachTeamRequestRoutes)
 app.use('/api/my_teams', checkAuthentication, myTeamRoutes);
 
 // File uploads (e.g. player images)
-app.use('/api/upload', uploadRoutes);
+app.use('/api/uploads', uploadRoutes);
+
+// Player-specific routes (fetch player details, upload images)
+app.use('/api/players', playerRoutes); // Player-specific routes
 
 ///////////////////////////////
 // Fallback for React Router

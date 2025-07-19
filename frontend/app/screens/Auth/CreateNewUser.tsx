@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Import React and state hook
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,44 +6,66 @@ import {
   Button,
   StyleSheet,
   Alert,
-} from 'react-native'; // Native UI components
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+} from 'react-native';
 
-import { Picker } from '@react-native-picker/picker'; // Role picker input
+import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
 
-import { useNavigation } from '@react-navigation/native'; // Navigation hook
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack'; // Type for typed navigation
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import NationalityDropdown from '../../../components/NationalityDropdown'; // Custom nationality selector
-import { registerUser } from '../../../adapters/authAdapters'; // API call to register user
-import { NewUserInput, ApiResponse } from '../../../types/userTypes'; // Form and response types
-import { RootStackParamList } from '../../../types/navigationTypes'; // Root navigator types
-import { useUser } from '../../contexts/UserContext'; // ✅ Import user context
+import NationalityDropdown from '../../../components/NationalityDropdown';
+import { registerUser } from '../../../adapters/authAdapters';
+import { uploadPlayerImage } from '../../../adapters/imageUploadAdapter'; // ✅ import image upload logic
+import { NewUserInput, ApiResponse } from '../../../types/userTypes';
+import { RootStackParamList } from '../../../types/navigationTypes';
+import { useUser } from '../../contexts/UserContext';
 
-// Define typed navigation prop for stack navigation
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 
 export default function CreateNewUser() {
-  const navigation = useNavigation<NavigationProp>(); // Initialize typed navigation
-  const { setUser } = useUser(); // ✅ Access setUser from context
+  const navigation = useNavigation<NavigationProp>();
+  const { setUser } = useUser();
 
-  // Initialize form state
   const [userData, setUserData] = useState<NewUserInput>({
     name: '',
     age: '',
     nationality: '',
     email: '',
     password: '',
-    role: 'player', // Default role is player
+    role: 'player',
   });
 
-  // Update form state for each input field
+  const [imageUri, setImageUri] = useState<string | null>(null);
+
   const handleChange = (field: keyof NewUserInput, value: string) => {
     setUserData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Handle form submission
+  // 🖼️ Select image from gallery
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission required', 'Camera roll access is needed.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
   const handleSubmit = async () => {
-    // Validate required fields
     if (
       !userData.name ||
       !userData.age ||
@@ -56,20 +78,34 @@ export default function CreateNewUser() {
     }
 
     try {
-      // Send POST request to register the user
-      const [data, error]: [ApiResponse | null, Error | null] =
-        await registerUser(userData);
+      let imageUrl = '';
 
-      // Handle registration error
+      // ✅ Upload image first (only if role is 'player')
+      if (userData.role === 'player' && imageUri) {
+        const [url, error] = await uploadPlayerImage(imageUri);
+        if (error || !url) {
+          Alert.alert('Upload Failed', error?.message || 'Could not upload player image');
+          return;
+        }
+        imageUrl = url;
+      }
+
+      // 📝 Combine form data with optional image URL
+      const finalUserData = {
+        ...userData,
+        image_url: imageUrl || undefined,
+      };
+
+      const [data, error]: [ApiResponse | null, Error | null] = await registerUser(finalUserData);
+
       if (error) {
         Alert.alert('Registration Failed', error.message);
         return;
       }
 
-      // If successful, notify user and set user context
       if (data?.success) {
         Alert.alert('Success', 'User created successfully!');
-        setUser(data.user); // ✅ Trigger post-auth navigation via UserContext
+        setUser(data.user); // Will trigger navigation
       } else {
         Alert.alert('Unexpected Error', 'Something went wrong.');
       }
@@ -79,80 +115,92 @@ export default function CreateNewUser() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create New User</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.avoider}
+    >
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Create New User</Text>
 
-      {/* Role Picker */}
-      <Text style={styles.label}>Role:</Text>
-      <Picker
-        selectedValue={userData.role}
-        onValueChange={(value) => handleChange('role', value)}
-        style={styles.picker}
-      >
-        <Picker.Item label="Player" value="player" />
-        <Picker.Item label="Coach" value="coach" />
-        {/*<Picker.Item label="Scout" value="scout" />*/ /* Uncomment if you add scout role */}
-      </Picker>
+        <Text style={styles.label}>Role:</Text>
+        <Picker
+          selectedValue={userData.role}
+          onValueChange={(value) => handleChange('role', value)}
+          style={styles.picker}
+        >
+          <Picker.Item label="Player" value="player" />
+          <Picker.Item label="Coach" value="coach" />
+        </Picker>
 
-      {/* Name Field */}
-      <Text style={styles.label}>Name:</Text>
-      <TextInput
-        placeholder="Full Name"
-        style={styles.input}
-        value={userData.name}
-        onChangeText={(text) => handleChange('name', text)}
-      />
+        <Text style={styles.label}>Name:</Text>
+        <TextInput
+          placeholder="Full Name"
+          style={styles.input}
+          value={userData.name}
+          onChangeText={(text) => handleChange('name', text)}
+        />
 
-      {/* Age Field */}
-      <Text style={styles.label}>Age:</Text>
-      <TextInput
-        placeholder="Age"
-        keyboardType="numeric"
-        style={styles.input}
-        value={userData.age}
-        onChangeText={(text) => handleChange('age', text)}
-      />
+        <Text style={styles.label}>Age:</Text>
+        <TextInput
+          placeholder="Age"
+          keyboardType="numeric"
+          style={styles.input}
+          value={userData.age}
+          onChangeText={(text) => handleChange('age', text)}
+        />
 
-      {/* Nationality Dropdown */}
-      <NationalityDropdown
-        onSelect={(selectedNationality) =>
-          handleChange('nationality', selectedNationality)
-        }
-      />
+        <NationalityDropdown
+          onSelect={(selectedNationality) =>
+            handleChange('nationality', selectedNationality)
+          }
+        />
 
-      {/* Email Field */}
-      <Text style={styles.label}>Email:</Text>
-      <TextInput
-        placeholder="Email"
-        style={styles.input}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={userData.email}
-        onChangeText={(text) => handleChange('email', text)}
-      />
+        <Text style={styles.label}>Email:</Text>
+        <TextInput
+          placeholder="Email"
+          style={styles.input}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={userData.email}
+          onChangeText={(text) => handleChange('email', text)}
+        />
 
-      {/* Password Field */}
-      <Text style={styles.label}>Password:</Text>
-      <TextInput
-        placeholder="Password"
-        style={styles.input}
-        secureTextEntry
-        value={userData.password}
-        onChangeText={(text) => handleChange('password', text)}
-      />
+        <Text style={styles.label}>Password:</Text>
+        <TextInput
+          placeholder="Password"
+          style={styles.input}
+          secureTextEntry
+          value={userData.password}
+          onChangeText={(text) => handleChange('password', text)}
+        />
 
-      {/* Submit Button */}
-      <Button title="Create User" onPress={handleSubmit} />
-    </View>
+        {/* Only show image picker if role is player */}
+        {userData.role === 'player' && (
+          <>
+            <Text style={styles.label}>Upload Player Photo:</Text>
+            <Button title="Choose Image" onPress={pickImage} />
+            {imageUri && (
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.imagePreview}
+              />
+            )}
+          </>
+        )}
+
+        <View style={{ marginTop: 20 }}>
+          <Button title="Create User" onPress={handleSubmit} />
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-// Local styles for layout and UI
 const styles = StyleSheet.create({
+  avoider: { flex: 1 },
   container: {
-    flex: 1,
     padding: 20,
-    justifyContent: 'center',
+    paddingBottom: 60,
   },
   title: {
     fontSize: 22,
@@ -175,5 +223,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
     fontWeight: '500',
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    marginTop: 10,
+    borderRadius: 8,
+    alignSelf: 'center',
   },
 });

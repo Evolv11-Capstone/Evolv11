@@ -32,7 +32,6 @@ exports.up = function (knex) {
     table.integer("coach_grade").defaultTo(50); // Coach subjective rating
     table.integer("overall_rating").defaultTo(50); // Calculated average of core attributes
 
-    table.string("image_url"); // Optional profile picture
     table.timestamps(true, true);
   });
 };

@@ -1,41 +1,44 @@
 // Input structure for registering a new user
 export type NewUserInput = {
-  name: string;
-  age: string;
-  nationality: string;
-  email: string;
-  password: string;
-  role: 'player' | 'coach'; // | 'scout'; // Uncomment if you add scout role
+  name: string;                          // Full name of the user
+  age: string;                           // Age as string (e.g., "25")
+  nationality: string;                  // ISO country name or code
+  email: string;                         // Login email
+  password: string;                      // Password (to be hashed on backend)
+  role: 'player' | 'coach';              // Role selection from dropdown
+  image_url?: string;                    // Optional profile image URL (only for players)
 };
 
+// Type representing a fully registered user (as returned by backend)
 export type User = {
-  id: number;
+  id: number;                            // Database user ID
   name: string;
   age: string;
   email: string;
   nationality: string;
   role: 'player' | 'coach';
-  teamIds: number[]; // or something like that
+  image_url?: string;                    // Profile image from S3 (nullable for coaches)
+  teamIds: number[];                     // Teams this user belongs to (if implemented)
 };
 
-// Login form input structure
+// Input shape for login form
 export type LoginInput = {
   email: string;
   password: string;
 };
 
-
-// Structure of a response from API
+// Shape of a typical API response from backend
 export type ApiResponse = {
-  success?: boolean;
-  message?: string;
-  [key: string]: any;
+  success?: boolean;                     // Indicates success of the request
+  message?: string;                      // Error or success message
+  [key: string]: any;                    // Allows additional dynamic keys like user or token
 };
 
-// Input for updating user profile
+// Optional input when updating user info
 export type UpdateUserInput = {
   name?: string;
   email?: string;
   age?: string;
   nationality?: string;
+  image_url?: string;                    // Optional update for profile image
 };

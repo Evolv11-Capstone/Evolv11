@@ -12,6 +12,8 @@ exports.up = function (knex) {
     table.string("email").unique().notNullable(); // Login email
     table.string("password_hash").notNullable(); // Hashed password
     table.string("role").notNullable(); // 'coach', 'player', or 'scout'
+    // image_url is only available for players
+    table.string("image_url").nullable();
 
 
 
