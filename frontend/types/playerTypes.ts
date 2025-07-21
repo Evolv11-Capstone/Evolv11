@@ -1,18 +1,33 @@
-// types/playerTypes.ts
-
 export interface TeamPlayer {
-  id: number;                     // User/player ID
-  name: string;                   // Full name
-  age?: number;                   // Optional age
-  nationality?: string;           // Optional nationality
-  role: string;                   // 'player', 'coach', etc.
-  team_id: number;                // Team association
-  image_url?: string;             // ✅ Optional image URL (from S3)
-  position?: string;             // Optional position for tactical display
-  overall_rating?: number;       // Optional player stat
-  shooting?: number;             // Optional attribute
+  id: number;                     // Player ID (players.id)
+  user_id?: number;               // Optional for clarity
+  name: string;
+  nationality?: string;
+  role: string;
+  team_id: number;
+  image_url?: string;
+  position?: string;
+  overall_rating?: number;
+  shooting?: number;
   passing?: number;
   dribbling?: number;
   defense?: number;
-  stamina?: number;
+  physical?: number;              // ✅ Replaces stamina
+  coach_grade?: number;
+  created_at?: string;
+}
+
+export interface ModerateStats {
+  goals: number;
+  assists: number;
+  saves: number;
+  tackles: number;
+  interceptions: number;
+  chances_created: number;
+  minutes_played: number;
+  coach_rating: number;
+}
+
+export interface UpdatePositionPayload {
+  position: string;
 }

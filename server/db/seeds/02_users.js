@@ -6,7 +6,7 @@ const bcrypt = require("bcrypt");
 
 exports.seed = async function (knex) {
   await knex("users").del();
-  const hash = await bcrypt.hash("password123", 10);
+  const hash = await bcrypt.hash("123", 10);
 
   await knex("users").insert([
     // Coach

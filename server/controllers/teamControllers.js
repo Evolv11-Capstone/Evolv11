@@ -35,3 +35,24 @@ exports.createTeam = async (req, res) => {
     res.status(500).json({ message: 'Failed to create team.' });
   }
 };
+
+/**
+ * GET /api/teams/:id/players
+ * Returns a list of approved players on a specific team
+ */
+exports.getPlayersByTeam = async (req, res) => {
+  const teamId = parseInt(req.params.id, 10);
+
+  if (isNaN(teamId)) {
+    return res.status(400).json({ message: 'Invalid team ID' });
+  }
+
+  try {
+    const players = await Team.getPlayers(teamId);
+    console.log('Returned players:', players.map(p => ({ id: p.id, user_id: p.user_id })));
+    res.json(players);
+  } catch (err) {
+    console.error('Failed to fetch players for team:', err);
+    res.status(500).json({ message: 'Failed to fetch team players' });
+  }
+};

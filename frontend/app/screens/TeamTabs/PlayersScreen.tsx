@@ -7,37 +7,35 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
+  Dimensions,
 } from 'react-native';
 
-import { useNavigation } from '@react-navigation/native'; // 👈 For navigating to PlayerDetail
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../types/navigationTypes'; // 👈 For type safety
+import { RootStackParamList } from '../../../types/navigationTypes';
+import { useActiveTeam } from '../../contexts/ActiveTeamContext';
+import { getPlayersByTeam } from '../../../adapters/teamAdapters';
+import { TeamPlayer } from '../../../types/playerTypes';
 
-import { useActiveTeam } from '../../contexts/ActiveTeamContext'; // Context for current team
-import { getPlayersByTeam } from '../../../adapters/teamAdapters'; // Adapter for player fetch
-import { TeamPlayer } from '../../../types/playerTypes'; // Type definition
-
-// 👇 Set up navigation prop type
+const { width } = Dimensions.get('window');
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'PlayerDetail'>;
 
 export default function PlayersScreen() {
-  const { activeTeamId } = useActiveTeam(); // Get team ID from context
-  const navigation = useNavigation<NavigationProp>(); // 👈 Access navigation
-
+  const { activeTeamId } = useActiveTeam();
+  const navigation = useNavigation<NavigationProp>();
   const [players, setPlayers] = useState<TeamPlayer[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch approved players on mount
   useEffect(() => {
     const fetchPlayers = async () => {
       if (!activeTeamId) return;
-
       const [data, error] = await getPlayersByTeam(activeTeamId);
 
       if (error) {
         Alert.alert('Error', 'Failed to load players');
       } else {
-        setPlayers(data || []);
+        setPlayers(data ?? []);
       }
 
       setLoading(false);
@@ -46,41 +44,42 @@ export default function PlayersScreen() {
     fetchPlayers();
   }, [activeTeamId]);
 
-  // Show loading spinner
   if (loading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" />
-        <Text>Loading players...</Text>
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#f8c300" />
+        <Text style={styles.loadingText}>Loading players...</Text>
       </View>
     );
   }
 
-  // If no players found
-  if (!players.length) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>No players found for this team.</Text>
-      </View>
-    );
-  }
-
-  // Main view: list of players with navigation on tap
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Squad Members</Text>
-
+      <Text style={styles.title}>Team Roster</Text>
       <FlatList
         data={players}
         keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('PlayerDetail', { playerId: item.id })} // 👈 Navigate on tap
+            onPress={() => navigation.navigate('PlayerDetail', { playerId: item.id })}
           >
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.meta}>Role: {item.role}</Text>
-            {item.nationality && <Text style={styles.meta}>Nationality: {item.nationality}</Text>}
+            <Image
+              source={{
+                uri: item.image_url
+                  ? item.image_url
+                  : 'https://www.pngkit.com/png/detail/799-7998601_profile-placeholder-person-icon.png',
+              }}
+              style={styles.avatar}
+            />
+            <View style={styles.cardText}>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.meta}>Position: {item.position ?? 'N/A'}</Text>
+              {item.nationality && (
+                <Text style={styles.meta}>Nationality: {item.nationality}</Text>
+              )}
+            </View>
           </TouchableOpacity>
         )}
       />
@@ -89,15 +88,64 @@ export default function PlayersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
-  card: {
-    padding: 12,
-    backgroundColor: '#eef2f7',
-    borderRadius: 10,
-    marginBottom: 10,
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    paddingTop: 20,
   },
-  name: { fontSize: 16, fontWeight: '600' },
-  meta: { fontSize: 14, color: '#333' },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  list: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#fdfdfd',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    alignItems: 'center',
+    borderColor: '#eee',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#f8c300',
+  },
+  cardText: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#222',
+  },
+  meta: {
+    fontSize: 14,
+    color: '#666',
+  },
 });

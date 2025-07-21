@@ -1,5 +1,8 @@
 // Import the PlayerTeamRequest model
 const PlayerTeamRequest = require('../models/PlayerTeamRequest');
+const Player = require('../models/Player');              // Player model
+// Import the Player model for creating player cards
+const knex = require('../db/knex');
 
 // Controller: GET /api/player_team_requests
 // Returns all player-team join requests in the database
@@ -49,21 +52,56 @@ exports.createPlayerRequest = async (req, res) => {
 // Controller: PATCH /api/player_team_requests/:id/approve
 // Approves a pending player-team request by ID
 exports.approvePlayerRequest = async (req, res) => {
-  // Extract the request ID from the route parameter
-  const requestId = req.params.id;
+  const requestId = parseInt(req.params.id, 10);
+
+  if (isNaN(requestId)) {
+    return res.status(400).json({ message: 'Invalid request ID' });
+  }
 
   try {
-    // Call the model method to approve the request
-    const updatedRequest = await PlayerTeamRequest.approve(requestId);
+    // 1. Find the player_team_request
+    const request = await knex('player_team_requests')
+      .where({ id: requestId })
+      .first();
 
-    // Return the updated request
-    res.json(updatedRequest);
-  } catch (err) {
-    // Log errors and return a 500 Internal Server Error
-    console.error('Failed to approve player request:', err);
-    res.status(500).json({ message: 'Internal server error' });
+    if (!request) {
+      return res.status(404).json({ message: 'Team request not found' });
+    }
+
+    if (request.status === 'approved') {
+      return res.status(400).json({ message: 'Request already approved' });
+    }
+
+    // 2. Approve the request
+    await knex('player_team_requests')
+      .where({ id: requestId })
+      .update({ status: 'approved' });
+
+    // 3. Check if player card already exists
+    const existingPlayer = await knex('players')
+      .where({ user_id: request.user_id, team_id: request.team_id })
+      .first();
+
+    if (existingPlayer) {
+      return res.json({
+        message: 'Request approved — player card already exists',
+        player: existingPlayer,
+      });
+    }
+
+    // 4. Create new player card
+    const [newPlayer] = await Player.create(request.user_id, request.team_id);
+
+    return res.json({
+      message: 'Request approved and player card created',
+      player: newPlayer,
+    });
+  } catch (error) {
+    console.error('Error approving player request:', error);
+    res.status(500).json({ message: 'Failed to approve team request' });
   }
 };
+
 
 exports.rejectRequest = async (req, res) => {
   const { id } = req.params;

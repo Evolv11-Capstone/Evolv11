@@ -1,80 +1,59 @@
-// screens/TeamSetupScreen.tsx
-
 import React, { useEffect, useState, useCallback } from 'react';
-
-import { useFocusEffect } from '@react-navigation/native';
-
 import {
   View,
   Text,
   TextInput,
-  Button,
   StyleSheet,
   Alert,
   FlatList,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useUser } from '../../contexts/UserContext';
 
-import { useNavigation } from '@react-navigation/native';
-import { useUser } from '../../contexts/UserContext'; // Global user context
-
-// Import correct adapters
 import { createTeam, getAllTeams } from '../../../adapters/teamAdapters';
 import {
   createPlayerTeamRequest,
   createCoachTeamRequest,
 } from '../../../adapters/teamRequestAdapters';
 
-// Define the shape of a team object
 interface Team {
   id: number;
   name: string;
 }
 
-// Component for team creation and join requests
 export default function TeamSetupScreen() {
-  const { user } = useUser(); // Get the current logged-in user
-  const navigation = useNavigation(); // Navigation for future redirects
+  const { user } = useUser();
+  const navigation = useNavigation();
 
-  // State to manage new team name input (for coaches)
   const [teamName, setTeamName] = useState('');
-
-  // State to store teams fetched from the server
   const [existingTeams, setExistingTeams] = useState<Team[]>([]);
-
-  // Track selected team (to join)
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
 
-  // Fetch all teams from the backend when screen loads
   useFocusEffect(
     useCallback(() => {
       const fetchTeams = async () => {
         const [data, error] = await getAllTeams();
         if (error) Alert.alert('Failed to load teams');
-        else setExistingTeams(data);
+        else setExistingTeams(data ?? []);
       };
-
       fetchTeams();
     }, [])
   );
 
-  // Coach-only: create a new team
   const handleCreateTeam = async () => {
     if (!teamName) return Alert.alert('Team name is required');
     if (!user) return Alert.alert('User not found');
 
-    const [data, error] = await createTeam({
-      name: teamName,
-      coach_id: user.id,
-    });
-
+    const [data, error] = await createTeam({ name: teamName, coach_id: user.id });
     if (error) return Alert.alert('Failed to create team');
 
     Alert.alert('Team created!');
-    // You could refresh teams here or navigate to a dashboard
+    setTeamName('');
   };
 
-  // Player or Coach: request to join an existing team
   const handleJoinTeam = async () => {
     if (!selectedTeamId) return Alert.alert('Select a team first');
     if (!user) return Alert.alert('User not found');
@@ -96,67 +75,121 @@ export default function TeamSetupScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <Text style={styles.title}>Team Setup</Text>
 
-      {/* Coach-only section: Create a new team */}
-      {user && user.role === 'coach' && (
-        <>
-          <Text style={styles.label}>Create a new club:</Text>
+      {user?.role === 'coach' && (
+        <View style={styles.section}>
+          <Text style={styles.label}>Create a new club</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter club name"
             value={teamName}
             onChangeText={setTeamName}
+            placeholderTextColor="#999"
           />
-          <Button title="Create Club" onPress={handleCreateTeam} />
-        </>
+          <TouchableOpacity style={styles.button} onPress={handleCreateTeam}>
+            <Text style={styles.buttonText}>Create Club</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
-      <Text style={styles.label}>Or join an existing club:</Text>
+      <Text style={styles.label}>Or join an existing club</Text>
 
-      {/* List of teams to request to join */}
       <FlatList
         data={existingTeams}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
-              styles.teamItem,
-              selectedTeamId === item.id && styles.selectedTeam,
+              styles.teamCard,
+              selectedTeamId === item.id && styles.selectedCard,
             ]}
             onPress={() => setSelectedTeamId(item.id)}
           >
-            <Text>{item.name}</Text>
+            <Text style={styles.teamName}>{item.name}</Text>
           </TouchableOpacity>
         )}
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
 
-      {/* Submit join request */}
-      <Button title="Request to Join Team" onPress={handleJoinTeam} />
-    </View>
+      <TouchableOpacity style={styles.secondaryButton} onPress={handleJoinTeam}>
+        <Text style={styles.secondaryButtonText}>Request to Join Team</Text>
+      </TouchableOpacity>
+    </KeyboardAvoidingView>
   );
 }
 
-// Styling
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
-  label: { fontWeight: '600', marginVertical: 8 },
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    color: '#111',
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
   input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
+    backgroundColor: '#f4f4f4',
+    padding: 12,
     borderRadius: 8,
-    padding: 10,
+    fontSize: 16,
+    color: '#222',
     marginBottom: 12,
   },
-  teamItem: {
-    padding: 12,
-    backgroundColor: '#eee',
-    borderRadius: 6,
-    marginVertical: 4,
+  button: {
+    backgroundColor: '#4b7bec',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
   },
-  selectedTeam: {
-    backgroundColor: '#cde1ff',
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#ff9f1c',
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  teamCard: {
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 6,
+    elevation: 2,
+  },
+  selectedCard: {
+    backgroundColor: '#d6f0ff',
+    borderColor: '#4b7bec',
+    borderWidth: 1.5,
+  },
+  teamName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#222',
   },
 });

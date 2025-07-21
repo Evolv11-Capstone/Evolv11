@@ -2,42 +2,75 @@ const knex = require('../db/knex');
 
 class Player {
   constructor(data) {
-    this.id = data.id;
-    this.name = data.name;                     // From users table
-    this.role = data.role;                     // From users table
-    this.nationality = data.nationality;       // From users table
+  this.id = data.id;
+  this.user_id = data.user_id;
+  this.team_id = data.team_id;
+  this.position = data.position;
+  this.overall_rating = data.overall_rating;
+  this.shooting = data.shooting;
+  this.passing = data.passing;
+  this.dribbling = data.dribbling;
+  this.defense = data.defense;
+  this.physical = data.physical;
+  this.coach_grade = data.coach_grade; // ✅ Include this
+  this.created_at = data.created_at;
 
-    this.position = data.position;             // From players table
-    this.overall_rating = data.overall_rating;
-    this.shooting = data.shooting;
-    this.passing = data.passing;
-    this.defense = data.defense;
-    this.stamina = data.stamina;
-    this.dribbling = data.dribbling;
+  // Joined from users table
+  this.name = data.name;
+  this.role = data.role;
+  this.nationality = data.nationality;
+  this.image_url = data.image_url;
+}
 
-    this.team_id = data.team_id;               // From players table
-    this.image_url = data.image_url;           // From users table
-    this.created_at = data.created_at;
+
+  static async create(userId, teamId) {
+    return await knex('players')
+      .insert({
+        user_id: userId,
+        team_id: teamId,
+        overall_rating: 50,
+        shooting: 50,
+        passing: 50,
+        dribbling: 50,
+        defense: 50,
+        physical: 50,
+      })
+      .returning('*');
   }
 
-  // Fetch full player profile by player ID, including joined user info
-  static async findById(id) {
-    const player = await knex('players')
-      .join('users', 'players.user_id', 'users.id') // Join to pull user details
-      .select(
-        'players.*',
-        'users.name',
-        'users.role',
-        'users.nationality',
-        'users.image_url' // This is now fetched from users table
-      )
-      .where('players.id', id)
-      .first();
-
-    return player ? new Player(player) : null;
+  static async findById(playerId) {
+    const result = await knex('players').where({ id: playerId }).first();
+    return result ? new Player(result) : null;
   }
 
-  // Optional future method for performance updates (does not include image logic anymore)
+  static async findByIdWithFullStats(playerId) {
+  const result = await knex('players')
+    .join('users', 'players.user_id', 'users.id') // ✅ join
+    .select(
+      'players.id',
+      'players.user_id',
+      'players.team_id',
+      'players.position',
+      'players.overall_rating',
+      'players.shooting',
+      'players.passing',
+      'players.dribbling',
+      'players.defense',
+      'players.physical',
+      'players.coach_grade',
+      'players.created_at',
+      'users.name',
+      'users.role',
+      'users.nationality',
+      'users.image_url'
+    )
+    .where('players.id', parseInt(playerId))
+    .first();
+
+  return result ? new Player(result) : null;
+}
+
+
   static async updateStats(playerId, updates) {
     const result = await knex('players')
       .where({ id: playerId })
@@ -46,6 +79,7 @@ class Player {
 
     return result.length ? new Player(result[0]) : null;
   }
+
 }
 
 module.exports = Player;

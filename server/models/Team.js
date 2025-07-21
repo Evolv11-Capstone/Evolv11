@@ -1,30 +1,52 @@
-// Import the Knex database instance
 const knex = require('../db/knex');
 
-// Define the Team class to encapsulate team logic
 class Team {
-  // Constructor to create an instance of a Team
   constructor({ id, name, coach_id }) {
-    this.id = id;          // Unique ID of the team
-    this.name = name;      // Name of the team
-    this.coach_id = coach_id; // ID of the coach who created the team
+    this.id = id;
+    this.name = name;
+    this.coach_id = coach_id;
   }
 
-  // Fetch all teams from the database
+  // Fetch all teams
   static async list() {
-    const query = `SELECT * FROM teams`; // SQL query to get all rows from teams
-    const result = await knex.raw(query); // Execute the query using Knex
-    return result.rows.map((rawTeam) => new Team(rawTeam)); // Convert each row into a Team instance
+    const teams = await knex('teams').select('*');
+    return teams.map((t) => new Team(t));
   }
 
-  // Create a new team with a name
+  // Create a new team
   static async create(name) {
-  const [team] = await knex('teams')
-    .insert({ name })
-    .returning('*');
-  return team;
-}
+    const [team] = await knex('teams')
+      .insert({ name })
+      .returning('*');
+    return new Team(team);
+  }
+
+  // ✅ NEW: Get all approved players on this team
+  static async getPlayers(teamId) {
+  const results = await knex('players')
+    .join('users', 'players.user_id', 'users.id')
+    .where('players.team_id', teamId)
+    .select(
+      'players.id as id',           // ✅ required for navigation
+      'players.user_id',            // ✅ missing right now
+      'players.team_id',
+      'players.position',
+      'players.overall_rating',
+      'players.shooting',
+      'players.passing',
+      'players.dribbling',
+      'players.defense',
+      'players.physical',
+      'players.created_at',
+      'users.name',
+      'users.role',
+      'users.nationality',
+      'users.image_url'
+    );
+
+  return results;
 }
 
-// Export the Team model so it can be used in controllers
+}
+
 module.exports = Team;
