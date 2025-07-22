@@ -56,6 +56,7 @@ const coachTeamRequestRoutes = require('./routes/coachTeamRequestRoutes');
 const myTeamRoutes = require('./routes/myTeamRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const playerRoutes = require('./routes/playerRoutes');
+const matchRoutes = require('./routes/matchRoutes');
 
 ///////////////////////////////
 // Route Mounting
@@ -70,6 +71,10 @@ app.use('/api/teams', checkAuthentication, teamRoutes); // ✅ includes /api/tea
 app.use('/api/player_team_requests', checkAuthentication, playerTeamRequestRoutes);
 app.use('/api/coach_team_requests', checkAuthentication, coachTeamRequestRoutes);
 app.use('/api/my_teams', checkAuthentication, myTeamRoutes);
+
+// match management
+app.use('/api/matches', matchRoutes);
+
 
 // Public endpoints
 app.use('/api/uploads', uploadRoutes);
