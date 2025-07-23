@@ -11,7 +11,7 @@ const app = express();
 ///////////////////////////////
 
 app.use(cors({
-  origin: 'http://192.168.87.54:8081', // Replace with Expo LAN/tunnel URL as needed
+  origin: 'http://192.168.1.104:8081', // Replace with Expo LAN/tunnel URL as needed
   credentials: true
 }));
 
@@ -57,6 +57,7 @@ const myTeamRoutes = require('./routes/myTeamRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const playerRoutes = require('./routes/playerRoutes');
 const matchRoutes = require('./routes/matchRoutes');
+const lineupRoutes = require('./routes/lineupRoutes');
 
 ///////////////////////////////
 // Route Mounting
@@ -75,6 +76,8 @@ app.use('/api/my_teams', checkAuthentication, myTeamRoutes);
 // match management
 app.use('/api/matches', matchRoutes);
 
+// Lineup management
+app.use('/api/lineups', lineupRoutes);
 
 // Public endpoints
 app.use('/api/uploads', uploadRoutes);

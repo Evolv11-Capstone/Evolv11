@@ -3,6 +3,7 @@
 
 import { getPostOptions, fetchHandler } from '../utils/fetchingUtils';
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 // Create a new lineup (called when formation is selected)
 export const createLineup = async ({
   team_id,
@@ -13,10 +14,12 @@ export const createLineup = async ({
   match_id: number;
   formation: string;
 }) => {
-  return await fetchHandler(
-    '/api/lineups',
+  const response = await fetchHandler(
+    `${API_BASE_URL}/lineups`,
     getPostOptions({ team_id, match_id, formation })
   );
+  console.log('Created lineup response:', response);
+  return response;
 };
 
 // Add a player to a specific lineup slot (position)
@@ -30,7 +33,12 @@ export const addPlayerToLineup = async ({
   position: string;
 }) => {
   return await fetchHandler(
-    '/api/lineup_players',
+    `${API_BASE_URL}/lineups/players`,
     getPostOptions({ lineup_id, player_id, position })
   );
+};
+
+// Fetch full lineup and players by match ID
+export const getFullLineupByMatch = async (matchId: number) => {
+  return await fetchHandler(`${API_BASE_URL}/lineups/${matchId}/full`);
 };

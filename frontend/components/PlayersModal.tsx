@@ -1,62 +1,45 @@
 // PlayersModal.tsx
-// ✅ Reusable modal component to select a player from a list
 
 import React from 'react';
 import {
   Modal,
   View,
   Text,
-  TouchableOpacity,
   FlatList,
+  TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import type { TeamPlayer } from '../types/playerTypes';
 
-// Define the shape of a player
-export type Player = {
-  id: number;
-  name: string;
+type Props = {
+  visible: boolean;
+  onClose: () => void;
+  players: TeamPlayer[];
+  onSelect: (player: TeamPlayer) => void; // 🔧 FIX: accept full player
 };
 
-// Props expected by the PlayersModal component
-type PlayersModalProps = {
-  visible: boolean; // Controls modal visibility
-  position: string | null; // Position being assigned
-  players: Player[]; // List of players to display
-  onClose: () => void; // Callback to close modal
-  onSelect: (playerId: number) => void; // Called when a player is selected
-};
-
-const PlayersModal: React.FC<PlayersModalProps> = ({
-  visible,
-  position,
-  players,
-  onClose,
-  onSelect,
-}) => {
+const PlayersModal = ({ visible, onClose, players, onSelect }: Props) => {
   return (
-    <Modal visible={visible} animationType="slide">
-      <View style={styles.container}>
-        {/* Modal Title */}
-        <Text style={styles.title}>Select Player for {position}</Text>
-
-        {/* Scrollable List of Players */}
-        <FlatList
-          data={players}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.playerButton}
-              onPress={() => onSelect(item.id)}
-            >
-              <Text style={styles.playerText}>{item.name}</Text>
-            </TouchableOpacity>
-          )}
-        />
-
-        {/* Cancel Button */}
-        <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
-          <Text style={styles.cancelText}>Cancel</Text>
-        </TouchableOpacity>
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Select a Player</Text>
+          <FlatList
+            data={players}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => onSelect(item)} // 🔧 send full player
+                style={styles.item}
+              >
+                <Text>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+          />
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeText}>Close</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Modal>
   );
@@ -64,36 +47,37 @@ const PlayersModal: React.FC<PlayersModalProps> = ({
 
 export default PlayersModal;
 
-// Styling for the modal
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
+  overlay: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  container: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    maxHeight: '70%',
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  playerButton: {
+  item: {
     paddingVertical: 10,
-    paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderColor: '#ddd',
   },
-  playerText: {
-    fontSize: 16,
-  },
-  cancelButton: {
-    marginTop: 20,
+  closeButton: {
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: '#ccc',
+    borderRadius: 6,
     alignItems: 'center',
   },
-  cancelText: {
-    color: 'red',
-    fontWeight: '500',
-    fontSize: 16,
+  closeText: {
+    fontWeight: '600',
   },
 });
-
-// ... keep styles unchanged

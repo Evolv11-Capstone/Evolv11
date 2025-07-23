@@ -7,12 +7,7 @@ exports.up = function (knex) {
   return knex.schema.createTable("lineups", (table) => {
     table.increments("id").primary();
 
-    table
-      .integer("match_id")
-      .unsigned()
-      .references("id")
-      .inTable("matches")
-      .onDelete("CASCADE");
+    table.integer('match_id').unsigned().unique().notNullable()
     table
       .integer("team_id")
       .unsigned()

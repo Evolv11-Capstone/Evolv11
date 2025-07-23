@@ -20,7 +20,6 @@ export const createMatch = async (matchData: {
 // Get all matches for a given team
 export const getMatchesForTeam = async (teamId: number) => {
   const response = await fetchHandler(`${API_BASE_URL}/matches?team_id=${teamId}`, basicFetchOptions);
-  console.log('Fetched matches from API:', response); // ← ADD THIS
   return response;
 };
 
