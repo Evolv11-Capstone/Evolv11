@@ -66,37 +66,63 @@ const addPlayerToLineup = async (req, res) => {
   }
 };
 
-// ✅ GET /api/lineups/:matchId/full — Retrieve lineup + assigned players
+// DELETE /api/lineups/players — Unassign a player from a lineup position
+const unassignPlayerFromLineup = async (req, res) => {
+  try {
+    const { lineup_id, player_id } = req.body;
+
+    if (!lineup_id || !player_id) {
+      return res.status(400).json({ error: 'Missing lineup_id or player_id' });
+    }
+
+    await LineupPlayer.unassign({ lineup_id, player_id });
+    res.status(200).json({ message: 'Player unassigned successfully' });
+  } catch (err) {
+    console.error('❌ Error unassigning player:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// GET /api/lineups/:matchId/full — retrieve full lineup with player info
 const getFullLineupByMatch = async (req, res) => {
   try {
     const { matchId } = req.params;
 
-    // Only fetch the single active lineup for this match
     const lineup = await Lineup.findByMatch(matchId);
-
+    console.log(`Lineup for match ${matchId}:`, lineup);
     if (!lineup) {
-      return res.status(404).json({ error: 'No lineup found for this match' });
+      return res.status(404).json({ error: 'Lineup not found for this match' });
     }
 
-    // Get players assigned to this lineup (with joined player & user data)
     const players = await LineupPlayer.findFullByLineup(lineup.id);
+    console.log(`players for lineup ${lineup.id}:`, players);
+
+    console.log('🎯 Returning full lineup with players:', {
+  lineup_id: lineup.id,
+  formation: lineup.formation,
+  match_id: lineup.match_id,
+  team_id: lineup.team_id,
+  players,
+});
 
     res.status(200).json({
       lineup_id: lineup.id,
       formation: lineup.formation,
       match_id: lineup.match_id,
       team_id: lineup.team_id,
-      players,
+      players, // ✅ this is what your frontend expects
     });
   } catch (error) {
-    console.error('❌ Error fetching full lineup:', error);
+    console.error('Error fetching full lineup:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 module.exports = {
   createLineup,
   updateFormation,
   addPlayerToLineup,
   getFullLineupByMatch,
+  unassignPlayerFromLineup
 };

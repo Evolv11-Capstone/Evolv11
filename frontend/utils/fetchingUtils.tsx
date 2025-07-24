@@ -5,10 +5,14 @@ export const basicFetchOptions: RequestInit = {
 };
 
 // Reusable fetch option for DELETE requests
-export const deleteOptions: RequestInit = {
-  method: 'DELETE',
-  credentials: 'include',
-};
+export function getDeleteOptions(body: any) {
+  return {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include' as RequestCredentials,
+    body: JSON.stringify(body),
+  };
+}
 
 // Generates options for a POST request with a JSON body
 export const getPostOptions = (body: unknown): RequestInit => ({

@@ -11,7 +11,7 @@ const app = express();
 ///////////////////////////////
 
 app.use(cors({
-  origin: 'http://192.168.1.104:8081', // Replace with Expo LAN/tunnel URL as needed
+  origin: 'http://192.168.1.202:8081', // Replace with Expo LAN/tunnel URL as needed
   credentials: true
 }));
 

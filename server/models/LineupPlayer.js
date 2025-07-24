@@ -22,6 +22,14 @@ class LineupPlayer {
     return result;
   }
 
+  // ❌ Unassign a player from a lineup
+  // This will remove the player from the lineup entirely
+  static async unassign({ lineup_id, player_id }) {
+  return await db('lineup_players')
+    .where({ lineup_id, player_id })
+    .del();
+}
+
   // 🔍 Get all assignments for a given lineup
   static async findByLineup(lineup_id) {
     return await db('lineup_players').where({ lineup_id });
@@ -44,9 +52,9 @@ class LineupPlayer {
     return updated;
   }
 
-  // 👥 Get full player info for a lineup (joined with players + users)
   static async findFullByLineup(lineup_id) {
-    return await db('lineup_players')
+  try {
+    const results = await db('lineup_players')
       .where({ lineup_id })
       .join('players', 'lineup_players.player_id', 'players.id')
       .join('users', 'players.user_id', 'users.id')
@@ -64,7 +72,14 @@ class LineupPlayer {
         'users.name',
         'users.nationality'
       );
+
+    console.log('✅ Fetched player assignments:', results.length, 'players');
+    return results || [];
+  } catch (err) {
+    console.error('❌ DB error in findFullByLineup:', err);
+    return [];
   }
+}
 }
 
 module.exports = LineupPlayer;
