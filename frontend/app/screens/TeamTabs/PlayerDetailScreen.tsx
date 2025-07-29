@@ -8,7 +8,7 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../../../types/navigationTypes';
 import { TeamPlayer, ModerateStats } from '../../../types/playerTypes';
 import {
@@ -25,6 +25,7 @@ const { width } = Dimensions.get('window');
 
 export default function PlayerDetailScreen() {
   const { playerId } = useRoute<PlayerDetailRouteProp>().params;
+  const navigation = useNavigation();
 
   const [player, setPlayer] = useState<TeamPlayer | null>(null);
   const [moderateStats, setModerateStats] = useState<ModerateStats | null>(null);
@@ -60,24 +61,27 @@ export default function PlayerDetailScreen() {
   }, [playerId]);
 
   const handlePositionChange = async (newPosition: string) => {
-  if (!player) return;
+    if (!player) return;
 
-  try {
-    await updatePlayerPosition(player.id, newPosition);
+    try {
+      await updatePlayerPosition(player.id, newPosition);
 
-    // ✅ Re-fetch full player after update to ensure consistency
-    const refreshed = await fetchPlayerById(player.id);
-    setPlayer(refreshed);
-  } catch (err) {
-    console.error('Position update error:', err);
-    Alert.alert('Error', 'Failed to update player position.');
-  }
-};
+      // ✅ Re-fetch full player after update to ensure consistency
+      const refreshed = await fetchPlayerById(player.id);
+      setPlayer(refreshed);
+
+      // ✅ PlayersScreen will automatically refresh when we navigate back due to useFocusEffect
+    } catch (err) {
+      console.error('Position update error:', err);
+      Alert.alert('Error', 'Failed to update player position.');
+    }
+  };
 
   if (loading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#f8c300" />
+        <ActivityIndicator size="large" color="#1a4d3a" />
+        <Text style={styles.loadingText}>Loading player details...</Text>
       </View>
     );
   }
@@ -85,13 +89,19 @@ export default function PlayerDetailScreen() {
   if (!player) {
     return (
       <View style={styles.loader}>
-        <Text style={{ color: '#333' }}>Player not found.</Text>
+        <Text style={styles.errorText}>Player not found.</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header Section */}
+      <View style={styles.headerSection}>
+        <Text style={styles.title}>Player Details</Text>
+        <Text style={styles.subtitle}>View player profile and statistics</Text>
+      </View>
+
       <View style={styles.cardWrapper}>
         <PlayerCard
           imageUrl={player.image_url ?? ''}
@@ -134,46 +144,86 @@ export default function PlayerDetailScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
-    paddingBottom: 40,
-    alignItems: 'center',
+    flexGrow: 1,
+    backgroundColor: '#f5f3f0',
+    paddingBottom: 100, // Add padding for tab bar
   },
   loader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f5f3f0',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#1a4d3a',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  errorText: {
+    color: '#1a4d3a',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  headerSection: {
+    paddingHorizontal: 24,
+    paddingTop: 40,
+    paddingBottom: 20,
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1a4d3a',
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '400',
   },
   cardWrapper: {
-    marginTop: 24,
-    width: width * 0.9,
-    borderRadius: 20,
-    backgroundColor: '#fdfdfd',
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#eee',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 0, // Sharp edges for Nike-inspired design
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1a4d3a',
     shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
+    shadowRadius: 3,
+    elevation: 3,
   },
   statsWrapper: {
-    marginTop: 30,
-    width: width * 0.92,
+    marginHorizontal: 20,
+    marginBottom: 20,
     backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#dedede',
+    borderRadius: 0, // Sharp edges
+    padding: 20,
+    borderTopWidth: 3,
+    borderTopColor: '#1a4d3a',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   sectionTitle: {
-    fontSize: 20,
-    color: '#000',
+    fontSize: 22,
+    color: '#1a4d3a',
     fontWeight: '700',
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: 'center',
-    letterSpacing: 0.5,
+    letterSpacing: -0.3,
   },
 });

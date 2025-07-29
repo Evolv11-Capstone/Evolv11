@@ -64,3 +64,13 @@ export const getPlayerById = async (
   const url = `${API_BASE_URL}/players/${playerId}`;
   return await fetchHandler<TeamPlayer>(url, basicFetchOptions);
 };
+
+/**
+ * Get a team by ID
+ */
+export const getTeamById = async (
+  teamId: number
+): Promise<[Team | null, Error | null]> => {
+  const url = `${API_BASE_URL}/teams/${teamId}`;
+  return await fetchHandler<Team>(url, basicFetchOptions);
+};

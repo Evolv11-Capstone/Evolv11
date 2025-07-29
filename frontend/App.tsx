@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, TouchableOpacity, Text } from 'react-native';
+import { ArrowLeft } from 'lucide-react-native';
 
 // Contexts
 import { UserProvider, useUser } from './app/contexts/UserContext';
@@ -15,6 +16,7 @@ import TeamTabsNavigator from './app/navigation/TeamTabsNavigator';
 
 // Extra screens outside of tabs
 import PlayerDetailScreen from './app/screens/TeamTabs/PlayerDetailScreen'; 
+import MatchDetailScreen from './app/screens/TeamTabs/MatchDetailScreen'; 
 
 // Navigation types
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -42,8 +44,13 @@ function Navigation() {
   // While the app checks for session persistence
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        backgroundColor: '#f5f3f0'
+      }}>
+        <ActivityIndicator size="large" color="#1a4d3a" />
       </View>
     );
   }
@@ -66,7 +73,115 @@ function Navigation() {
             <RootStack.Screen
               name="PlayerDetail"
               component={PlayerDetailScreen}
-              options={{ headerShown: true, title: 'Player Profile' }}
+              options={({ navigation }) => ({ 
+                headerShown: true, 
+                title: 'PLAYER PROFILE',
+                headerStyle: {
+    
+                  backgroundColor: '#f5f3f0',
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#d4b896',
+                  height: 100,
+                },
+                headerTitleStyle: {
+                  fontSize: 24,
+                  fontWeight: '900',
+                  color: '#1a4d3a',
+                },
+                headerTitleAlign: 'left',
+                headerLeft: () => (
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginLeft: 17,
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      backgroundColor: '#ffffff',
+                      borderWidth: 1,
+                      borderColor: '#d4b896',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 3,
+                      elevation: 2,
+                    }}
+                    onPress={() => navigation.goBack()}
+                    activeOpacity={0.7}
+                  >
+                    <ArrowLeft size={18} color="#1a4d3a" strokeWidth={2} />
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: '900',
+                      letterSpacing: 0.5,
+                      color: '#1a4d3a',
+                      marginLeft: 8,
+                      textTransform: 'uppercase',
+                    }}>
+                      TEAM TABS
+                    </Text>
+                  </TouchableOpacity>
+                ),
+                headerTintColor: '#1a4d3a',
+                headerBackTitle: '',
+                headerShadowVisible: false,
+              })}
+            />
+            <RootStack.Screen
+              name="MatchDetailScreen"
+              component={MatchDetailScreen}
+              options={({ navigation }) => ({ 
+                headerShown: true,
+                title: 'MATCH DETAIL',
+                headerStyle: {
+                  backgroundColor: '#f5f3f0',
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#d4b896',
+                  height: 100,
+                },
+                headerTitleStyle: {
+                  fontSize: 24,
+                  fontWeight: '900',
+                  color: '#1a4d3a',
+                },
+                headerTitleAlign: 'left',
+                headerLeft: () => (
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginLeft: 16,
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      backgroundColor: '#ffffff',
+                      borderWidth: 1,
+                      borderColor: '#d4b896',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 3,
+                      elevation: 2,
+                    }}
+                    onPress={() => navigation.goBack()}
+                    activeOpacity={0.7}
+                  >
+                    <ArrowLeft size={18} color="#1a4d3a" strokeWidth={2} />
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: '900',
+                      letterSpacing: 0.5,
+                      color: '#1a4d3a',
+                      marginLeft: 8,
+                      textTransform: 'uppercase',
+                    }}>
+                      TEAM TABS
+                    </Text>
+                  </TouchableOpacity>
+                ),
+                headerTintColor: '#1a4d3a',
+                headerBackTitle: '',
+                headerShadowVisible: false,
+              })}
             />
           </>
         )}

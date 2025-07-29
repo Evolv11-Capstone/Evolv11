@@ -57,37 +57,46 @@ export default BenchSelector;
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 24,
-    paddingVertical: 12,
+    marginTop: 20,
+    paddingVertical: 16,
   },
   title: {
-    fontSize: 17,
-    fontWeight: '600',
-    marginBottom: 10,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 16,
+    color: '#1a4d3a',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   slotBox: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 8,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 6,
+    borderRadius: 0, // Sharp edges for Nike aesthetic
     borderWidth: 1,
+    borderLeftWidth: 3,
   },
   filled: {
-    backgroundColor: '#e6ffe6',
-    borderColor: '#28a745',
+    backgroundColor: '#f5f3f0', // Cream background
+    borderColor: '#d4b896',
+    borderLeftColor: '#1a4d3a',
   },
   empty: {
-    backgroundColor: '#f9f9f9',
-    borderColor: '#bbb',
+    backgroundColor: '#ffffff',
+    borderColor: '#e0e0e0',
+    borderLeftColor: '#d4b896',
   },
   slotLabel: {
     fontWeight: '600',
-    fontSize: 13,
-    color: '#333',
+    fontSize: 12,
+    color: '#1a4d3a',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   playerName: {
-    fontSize: 14,
+    fontSize: 13,
     marginTop: 4,
-    color: '#222',
+    color: '#666',
+    fontWeight: '500',
   },
 });

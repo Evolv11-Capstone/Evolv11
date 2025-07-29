@@ -56,3 +56,26 @@ exports.getPlayersByTeam = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch team players' });
   }
 };
+
+/**
+ * GET /api/teams/:id
+ * Returns a specific team by ID
+ */
+exports.getTeamById = async (req, res) => {
+  const teamId = parseInt(req.params.id, 10);
+
+  if (isNaN(teamId)) {
+    return res.status(400).json({ message: 'Invalid team ID' });
+  }
+
+  try {
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+    res.json(team);
+  } catch (err) {
+    console.error('Failed to fetch team:', err);
+    res.status(500).json({ message: 'Failed to fetch team' });
+  }
+};

@@ -21,6 +21,14 @@ class Team {
     return new Team(team);
   }
 
+  // Find a team by ID
+  static async findById(teamId) {
+    const team = await knex('teams')
+      .where('id', teamId)
+      .first();
+    return team ? new Team(team) : null;
+  }
+
   // ✅ NEW: Get all approved players on this team
   static async getPlayers(teamId) {
   const results = await knex('players')

@@ -1,4 +1,4 @@
-declare module '*.jpg'; {
+declare module '*.png'; {
   const value: number;
   export default value;
 }

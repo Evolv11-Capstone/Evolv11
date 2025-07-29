@@ -40,7 +40,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'PostAuthTab
 
 export default function ActiveClubsScreen() {
   const { user } = useUser(); // Access authenticated user data
-  const { setActiveTeamId } = useActiveTeam(); // Function to update global active team ID
+  const { setActiveTeamId, setActiveTeamName } = useActiveTeam(); // Function to update global active team ID and name
   const navigation = useNavigation<NavigationProp>(); // Navigation object for redirecting
 
   const [teams, setTeams] = useState<Team[]>([]); // Stores teams fetched from backend
@@ -67,6 +67,7 @@ export default function ActiveClubsScreen() {
   // Handle tap on a team
   const handleTeamPress = (team: Team) => {
     setActiveTeamId(team.id); // Update active team globally
+    setActiveTeamName(team.name); // Update active team name globally
     navigation.navigate('TeamTabs', { teamId: team.id }); // Navigate to per-team navigator
   };
 
@@ -74,8 +75,8 @@ export default function ActiveClubsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text>Loading your clubs...</Text>
+        <ActivityIndicator size="large" color="#1a4d3a" />
+        <Text style={styles.loadingText}>Loading your clubs...</Text>
       </View>
     );
   }
@@ -84,8 +85,14 @@ export default function ActiveClubsScreen() {
   if (!teams.length) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Active Clubs</Text>
-        <Text>You are not a member of any team yet.</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Active Clubs</Text>
+          <Text style={styles.subtitle}>Your football clubs</Text>
+        </View>
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>You are not a member of any team yet.</Text>
+          <Text style={styles.emptySubtext}>Join a club to start your football journey</Text>
+        </View>
       </View>
     );
   }
@@ -93,7 +100,10 @@ export default function ActiveClubsScreen() {
   // Main view with list of active clubs
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Your Active Clubs</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Your Active Clubs</Text>
+        <Text style={styles.subtitle}>Select a club to continue</Text>
+      </View>
 
       <FlatList
         data={teams} // Teams to render
@@ -102,40 +112,97 @@ export default function ActiveClubsScreen() {
           <TouchableOpacity
             style={styles.teamItem}
             onPress={() => handleTeamPress(item)} // Handle tap on team
+            activeOpacity={0.8}
           >
             <Text style={styles.teamName}>{item.name}</Text>
           </TouchableOpacity>
         )}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContainer}
       />
     </View>
   );
 }
 
-// Local screen styling
+// Styles - Evolv11 Brand Colors & Nike-inspired Design
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    backgroundColor: '#f5f3f0', // Warm beige background matching logo
+    paddingHorizontal: 20,
+  },
+  header: {
+    paddingTop: 60,
+    paddingBottom: 40,
+    alignItems: 'flex-start',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#1a4d3a', // Dark green matching logo
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#6b7280',
+    lineHeight: 22,
   },
   loadingContainer: {
     flex: 1,
-    padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f5f3f0',
+    paddingHorizontal: 20,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 16,
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#6b7280',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  listContainer: {
+    paddingBottom: 100, // Extra padding to avoid tab bar
   },
   teamItem: {
-    backgroundColor: '#e6ecf3',
-    padding: 14,
-    borderRadius: 8,
-    marginVertical: 6,
+    backgroundColor: '#ffffff',
+    padding: 24,
+    marginVertical: 8,
+    borderRadius: 0,
+    shadowColor: '#1a4d3a',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+    borderTopWidth: 3,
+    borderTopColor: '#1a4d3a',
   },
   teamName: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a4d3a',
+    letterSpacing: -0.2,
   },
 });

@@ -14,6 +14,12 @@ export function getDeleteOptions(body: any) {
   };
 }
 
+// Reusable fetch option for DELETE requests
+export const deleteOptions: RequestInit = {
+  method: 'DELETE',
+  credentials: 'include',
+};
+
 // Generates options for a POST request with a JSON body
 export const getPostOptions = (body: unknown): RequestInit => ({
   method: 'POST',

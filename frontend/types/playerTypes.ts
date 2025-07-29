@@ -8,6 +8,7 @@ export interface TeamPlayer {
   image_url?: string;
   position?: string;
   overall_rating?: number;
+  
   shooting?: number;
   passing?: number;
   dribbling?: number;

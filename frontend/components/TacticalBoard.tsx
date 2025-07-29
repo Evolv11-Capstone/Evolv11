@@ -3,35 +3,39 @@ import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import type { TeamPlayer } from '../types/playerTypes';
+import MiniPlayerCard from './MiniPlayerCard';
+import BenchSelector from './BenchSelector';
 
 type Props = {
   formation: string;
   lineup: { [pos: string]: number | null };
-  bench?: number[];
+  bench: number[];
   players: TeamPlayer[];
   onTapPosition: (pos: string) => void;
   onUnassign: (pos: string, playerId: number) => void;
+  onBenchSlotTap: (slot: string) => void;
+  onPlayerTap: (player: TeamPlayer) => void;
 };
 
 const { width } = Dimensions.get('window');
 const FIELD_WIDTH = width - 32;
-const FIELD_HEIGHT = FIELD_WIDTH * 1.5;
+const FIELD_HEIGHT = FIELD_WIDTH * 1.8; // Increased from 1.5 to 1.8 for longer field
 
-// Map of standard positions to tactical field coordinates
+// Coordinates for player positions on field by formation
 const positionCoordinates: {
   [formation: string]: { [pos: string]: { top: string; left: string } };
 } = {
   '4-4-2': {
-    GK: { top: '90%', left: '47%' },
-    LB: { top: '70%', left: '10%' },
-    CB1: { top: '70%', left: '35%' },
-    CB2: { top: '70%', left: '60%' },
-    RB: { top: '70%', left: '85%' },
+    GK: { top: '95%', left: '47%' },
+    LB: { top: '75%', left: '10%' },
+    CB1: { top: '75%', left: '35%' },
+    CB2: { top: '75%', left: '60%' },
+    RB: { top: '75%', left: '85%' },
     LM: { top: '50%', left: '10%' },
     CM1: { top: '50%', left: '36%' },
     CM2: { top: '50%', left: '59%' },
@@ -40,11 +44,11 @@ const positionCoordinates: {
     ST2: { top: '25%', left: '62%' },
   },
   '4-3-3': {
-    GK: { top: '90%', left: '49%' },
-    LB: { top: '70%', left: '10%' },
-    CB1: { top: '70%', left: '35%' },
-    CB2: { top: '70%', left: '60%' },
-    RB: { top: '70%', left: '85%' },
+    GK: { top: '95%', left: '49%' },
+    LB: { top: '75%', left: '10%' },
+    CB1: { top: '75%', left: '35%' },
+    CB2: { top: '75%', left: '60%' },
+    RB: { top: '75%', left: '85%' },
     CM1: { top: '50%', left: '27%' },
     CM2: { top: '50%', left: '49%' },
     CM3: { top: '50%', left: '71%' },
@@ -52,145 +56,282 @@ const positionCoordinates: {
     ST: { top: '20%', left: '49%' },
     RW: { top: '25%', left: '80%' },
   },
-  // Add more as needed
 };
+
+const SLOT_WIDTH = 80;
+const SLOT_HEIGHT = 70;
+const SLOT_OFFSET_X = 8;
+const SLOT_OFFSET_Y = -30;
 
 const TacticalBoard: React.FC<Props> = ({
   formation,
   lineup,
-  bench = [],
+  bench,
   players,
   onTapPosition,
   onUnassign,
+  onBenchSlotTap,
+  onPlayerTap,
 }) => {
   const coords = positionCoordinates[formation];
 
   if (!coords) {
-    return <Text>Formation "{formation}" not supported yet.</Text>;
+    return <Text>Formation "{formation}" is not yet supported.</Text>;
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>2. Tactical Board</Text>
+      <Text style={styles.title}>TACTICAL BOARD</Text>
+      <Text style={styles.instructions}>
+        TAP A SLOT TO ASSIGN • TAP PLAYER FOR STATS • LONG-PRESS TO REMOVE
+      </Text>
 
-      {/* ⚽ Tactical Pitch */}
+      {/* Field */}
       <View style={styles.field}>
+        {/* Visual pitch lines */}
+        <View style={styles.centerLine} />
+        <View style={styles.centerCircle} />
+        <View style={styles.penaltyBoxLeft} />
+        <View style={styles.penaltyBoxRight} />
+        <View style={styles.goalBoxLeft} />
+        <View style={styles.goalBoxRight} />
+        <View style={styles.spotCenter} />
+        <View style={styles.spotLeft} />
+        <View style={styles.spotRight} />
+
+        {/* Player positions */}
         {Object.entries(coords).map(([pos, coord]) => {
           const playerId = lineup[pos];
           const player = players.find((p) => p.id === playerId);
+
+          const top =
+            (coord.top.endsWith('%') ? (parseFloat(coord.top) / 100) * FIELD_HEIGHT : Number(coord.top)) +
+            SLOT_OFFSET_Y;
+          const left =
+            (coord.left.endsWith('%') ? (parseFloat(coord.left) / 100) * FIELD_WIDTH : Number(coord.left)) +
+            SLOT_OFFSET_X;
+
           return (
-            <TouchableOpacity
+            <View
               key={pos}
-              onPress={() =>
-                player ? onUnassign(pos, playerId!) : onTapPosition(pos)
-              }
               style={[
-                styles.positionButton,
+                styles.positionSlot,
                 {
-                  top: coord.top.endsWith('%')
-                    ? (parseFloat(coord.top) / 100) * FIELD_HEIGHT
-                    : Number(coord.top),
-                  left: coord.left.endsWith('%')
-                    ? (parseFloat(coord.left) / 100) * FIELD_WIDTH
-                    : Number(coord.left),
-                  transform: [{ translateX: -30 }, { translateY: -20 }],
+                  top: top - SLOT_HEIGHT / 2,
+                  left: left - SLOT_WIDTH / 2,
+                  width: SLOT_WIDTH,
+                  height: SLOT_HEIGHT,
                 },
               ]}
             >
-              <Text style={styles.positionLabel}>{pos}</Text>
-              <Text style={styles.playerName}>
-                {player ? player.name : 'Tap to assign'}
-              </Text>
-            </TouchableOpacity>
+              {player ? (
+                <MiniPlayerCard
+                  player={player}
+                  onPress={() => onPlayerTap(player)}
+                  onLongPress={() => onUnassign(pos, player.id)}
+                />
+              ) : (
+                <TouchableOpacity
+                  onPress={() => onTapPosition(pos)}
+                  style={styles.emptySlot}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.emptyText}>{pos}</Text>
+                  <Text style={styles.tapPrompt}>TAP</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           );
         })}
       </View>
 
-      {/* 🪑 Bench Display */}
-      <Text style={styles.benchLabel}>Bench</Text>
-      <View style={styles.benchRow}>
-        {[...Array(7)].map((_, idx) => {
-          const pos = `B${idx + 1}`;
-          const playerId = bench[idx];
-          const player = players.find((p) => p.id === playerId);
-          return (
-            <TouchableOpacity
-              key={pos}
-              onPress={() =>
-                player ? onUnassign(pos, playerId!) : onTapPosition(pos)
-              }
-              style={styles.benchSlot}
-            >
-              <Text style={styles.positionLabel}>{pos}</Text>
-              <Text style={styles.playerName}>
-                {player ? player.name : 'Tap to assign'}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {/* Bench */}
+      <BenchSelector
+        bench={bench}
+        players={players}
+        onAssign={onBenchSlotTap}
+        onRemove={onUnassign}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 24,
+    marginTop: 20,
     marginBottom: 30,
+    paddingHorizontal: 8,
   },
-  label: {
-    fontSize: 18,
+  title: {
+    fontSize: 16,
+    fontWeight: '900', // Ultra-bold Nike typography
+    marginBottom: 12,
+    color: '#1a4d3a',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  instructions: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 16,
     fontWeight: '600',
-    marginBottom: 10,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    textTransform: 'uppercase',
   },
   field: {
     width: FIELD_WIDTH,
     height: FIELD_HEIGHT,
-    backgroundColor: '#3cba54',
-    borderRadius: 12,
-    position: 'relative',
+    backgroundColor: '#2d5a3d', // Darker, more professional green
+    borderRadius: 0, // Sharp edges for Nike aesthetic
     alignSelf: 'center',
+    position: 'relative',
+    borderWidth: 3,
+    borderColor: '#1a4d3a',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 6,
   },
-  positionButton: {
+  positionSlot: {
     position: 'absolute',
-    width: 80,
-    paddingVertical: 6,
-    backgroundColor: '#ffffffdd',
-    borderRadius: 6,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
+    justifyContent: 'center',
   },
-  benchLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 20,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  benchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    paddingHorizontal: 12,
-  },
-  benchSlot: {
-    width: '28%',
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 6,
-    borderRadius: 6,
+  emptySlot: {
+    width: SLOT_WIDTH,
+    height: SLOT_HEIGHT,
+    backgroundColor: '#ffffff',
+    borderRadius: 0, // Sharp edges
+    borderColor: '#d4b896',
+    borderWidth: 2,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 6,
-    borderColor: '#aaa',
-    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
-  positionLabel: {
-    fontWeight: '700',
+  emptyText: {
+    fontWeight: '900', // Ultra-bold
     fontSize: 12,
+    color: '#1a4d3a',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  playerName: {
-    fontSize: 11,
-    textAlign: 'center',
+  tapPrompt: {
+    fontSize: 9,
+    color: '#666',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginTop: 2,
+    textTransform: 'uppercase',
+  },
+
+  // Field lines - Nike-inspired clean lines
+  centerLine: {
+    position: 'absolute',
+    left: 0,
+    width: '100%',
+    height: 3,
+    backgroundColor: '#ffffff',
+    top: '50%',
+    marginTop: -1.5,
+    opacity: 0.8,
+  },
+  centerCircle: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: FIELD_WIDTH * 0.28,
+    height: FIELD_WIDTH * 0.28,
+    borderRadius: (FIELD_WIDTH * 0.28) / 2,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    marginLeft: -(FIELD_WIDTH * 0.28) / 2,
+    marginTop: -(FIELD_WIDTH * 0.28) / 2,
+    opacity: 0.8,
+  },
+  penaltyBoxLeft: {
+    position: 'absolute',
+    left: '25%',
+    top: 0,
+    width: FIELD_WIDTH * 0.5,
+    height: FIELD_HEIGHT * 0.18,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    borderRadius: 0, // Sharp edges
+    opacity: 0.8,
+  },
+  penaltyBoxRight: {
+    position: 'absolute',
+    left: '25%',
+    bottom: 0,
+    width: FIELD_WIDTH * 0.5,
+    height: FIELD_HEIGHT * 0.18,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    borderRadius: 0, // Sharp edges
+    opacity: 0.8,
+  },
+  goalBoxLeft: {
+    position: 'absolute',
+    left: '38%',
+    top: 0,
+    width: FIELD_WIDTH * 0.24,
+    height: FIELD_HEIGHT * 0.08,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    borderRadius: 0, // Sharp edges
+    opacity: 0.8,
+  },
+  goalBoxRight: {
+    position: 'absolute',
+    left: '38%',
+    bottom: 0,
+    width: FIELD_WIDTH * 0.24,
+    height: FIELD_HEIGHT * 0.08,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    borderRadius: 0, // Sharp edges
+    opacity: 0.8,
+  },
+  spotCenter: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: 12,
+    height: 12,
+    borderRadius: 0, // Sharp square spot
+    backgroundColor: '#ffffff',
+    marginLeft: -6,
+    marginTop: -6,
+    opacity: 0.9,
+  },
+  spotLeft: {
+    position: 'absolute',
+    top: FIELD_HEIGHT * 0.12 - 6,
+    left: '50%',
+    width: 12,
+    height: 12,
+    borderRadius: 0, // Sharp square spot
+    backgroundColor: '#ffffff',
+    marginLeft: -6,
+    opacity: 0.9,
+  },
+  spotRight: {
+    position: 'absolute',
+    bottom: FIELD_HEIGHT * 0.12 - 6,
+    left: '50%',
+    width: 12,
+    height: 12,
+    borderRadius: 0, // Sharp square spot
+    backgroundColor: '#ffffff',
+    marginLeft: -6,
+    opacity: 0.9,
   },
 });
 

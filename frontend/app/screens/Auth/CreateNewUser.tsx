@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  Button,
+  TouchableOpacity,
   StyleSheet,
   Alert,
   ScrollView,
@@ -20,7 +20,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import NationalityDropdown from '../../../components/NationalityDropdown';
 import { registerUser } from '../../../adapters/authAdapters';
-import { uploadPlayerImage } from '../../../adapters/imageUploadAdapter'; // ✅ import image upload logic
+import { uploadPlayerImage } from '../../../adapters/imageUploadAdapter';
 import { NewUserInput, ApiResponse } from '../../../types/userTypes';
 import { RootStackParamList } from '../../../types/navigationTypes';
 import { useUser } from '../../contexts/UserContext';
@@ -41,12 +41,12 @@ export default function CreateNewUser() {
   });
 
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (field: keyof NewUserInput, value: string) => {
     setUserData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // 🖼️ Select image from gallery
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -78,19 +78,19 @@ export default function CreateNewUser() {
     }
 
     try {
+      setLoading(true);
       let imageUrl = '';
 
-      // ✅ Upload image first (only if role is 'player')
       if (userData.role === 'player' && imageUri) {
         const [url, error] = await uploadPlayerImage(imageUri);
         if (error || !url) {
           Alert.alert('Upload Failed', error?.message || 'Could not upload player image');
+          setLoading(false);
           return;
         }
         imageUrl = url;
       }
 
-      // 📝 Combine form data with optional image URL
       const finalUserData = {
         ...userData,
         image_url: imageUrl || undefined,
@@ -100,135 +100,334 @@ export default function CreateNewUser() {
 
       if (error) {
         Alert.alert('Registration Failed', error.message);
+        setLoading(false);
         return;
       }
 
       if (data?.success) {
         Alert.alert('Success', 'User created successfully!');
-        setUser(data.user); // Will trigger navigation
+        setUser(data.user);
       } else {
         Alert.alert('Unexpected Error', 'Something went wrong.');
       }
     } catch (err: any) {
       Alert.alert('Server Error', err.message || 'Failed to register user.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.avoider}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Create New User</Text>
+    <View style={styles.background}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.avoider}
+      >
+        <ScrollView contentContainerStyle={styles.overlay}>
+          <View style={styles.card}>
+           
 
-        <Text style={styles.label}>Role:</Text>
-        <Picker
-          selectedValue={userData.role}
-          onValueChange={(value) => handleChange('role', value)}
-          style={styles.picker}
-        >
-          <Picker.Item label="Player" value="player" />
-          <Picker.Item label="Coach" value="coach" />
-        </Picker>
+            <Text style={styles.title}>Join the Evolution</Text>
+            <Text style={styles.subtitle}>Start your journey</Text>
 
-        <Text style={styles.label}>Name:</Text>
-        <TextInput
-          placeholder="Full Name"
-          style={styles.input}
-          value={userData.name}
-          onChangeText={(text) => handleChange('name', text)}
-        />
+            <Text style={styles.label}>Role</Text>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={userData.role}
+                onValueChange={(value) => handleChange('role', value)}
+                style={Platform.OS === 'ios' ? styles.pickerIOS : styles.picker}
+                itemStyle={Platform.OS === 'ios' ? styles.pickerItemIOS : undefined}
+              >
+                <Picker.Item label="Player" value="player" />
+                <Picker.Item label="Coach" value="coach" />
+              </Picker>
+            </View>
 
-        <Text style={styles.label}>Age:</Text>
-        <TextInput
-          placeholder="Age"
-          keyboardType="numeric"
-          style={styles.input}
-          value={userData.age}
-          onChangeText={(text) => handleChange('age', text)}
-        />
+            <Text style={styles.label}>Name</Text>
+            <TextInput
+              placeholder="Enter your full name"
+              style={styles.input}
+              value={userData.name}
+              onChangeText={(text) => handleChange('name', text)}
+              placeholderTextColor="#9ca3af"
+            />
 
-        <NationalityDropdown
-          onSelect={(selectedNationality) =>
-            handleChange('nationality', selectedNationality)
-          }
-        />
+            <Text style={styles.label}>Age</Text>
+            <TextInput
+              placeholder="Enter your age"
+              keyboardType="numeric"
+              style={styles.input}
+              value={userData.age}
+              onChangeText={(text) => handleChange('age', text)}
+              placeholderTextColor="#9ca3af"
+            />
 
-        <Text style={styles.label}>Email:</Text>
-        <TextInput
-          placeholder="Email"
-          style={styles.input}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={userData.email}
-          onChangeText={(text) => handleChange('email', text)}
-        />
+            <Text style={styles.label}>Nationality</Text>
+            <NationalityDropdown
+              onSelect={(selectedNationality) =>
+                handleChange('nationality', selectedNationality)
+              }
+            />
 
-        <Text style={styles.label}>Password:</Text>
-        <TextInput
-          placeholder="Password"
-          style={styles.input}
-          secureTextEntry
-          value={userData.password}
-          onChangeText={(text) => handleChange('password', text)}
-        />
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              placeholder="Enter your email"
+              style={styles.input}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={userData.email}
+              onChangeText={(text) => handleChange('email', text)}
+              placeholderTextColor="#9ca3af"
+            />
 
-        {/* Only show image picker if role is player */}
-        {userData.role === 'player' && (
-          <>
-            <Text style={styles.label}>Upload Player Photo:</Text>
-            <Button title="Choose Image" onPress={pickImage} />
-            {imageUri && (
-              <Image
-                source={{ uri: imageUri }}
-                style={styles.imagePreview}
-              />
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              placeholder="Create a strong password"
+              style={styles.input}
+              secureTextEntry
+              value={userData.password}
+              onChangeText={(text) => handleChange('password', text)}
+              placeholderTextColor="#9ca3af"
+            />
+
+            {userData.role === 'player' && (
+              <>
+                <Text style={styles.label}>Player Photo</Text>
+                <TouchableOpacity style={styles.imageButton} onPress={pickImage} activeOpacity={0.85}>
+                  <Text style={styles.imageButtonText}>
+                    {imageUri ? 'Change Photo' : 'Upload Photo'}
+                  </Text>
+                </TouchableOpacity>
+                {imageUri && (
+                  <Image
+                    source={{ uri: imageUri }}
+                    style={styles.imagePreview}
+                  />
+                )}
+              </>
             )}
-          </>
-        )}
 
-        <View style={{ marginTop: 20 }}>
-          <Button title="Create User" onPress={handleSubmit} />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <TouchableOpacity
+              style={[styles.submitButton, loading && styles.buttonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.submitButtonText}>
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>Already have an account?</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.footerLink}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
+// Styles - Evolv11 Brand Colors & Nike-inspired Design
 const styles = StyleSheet.create({
-  avoider: { flex: 1 },
-  container: {
-    padding: 20,
-    paddingBottom: 60,
+  background: {
+    flex: 1,
+    backgroundColor: '#f5f3f0', // Warm beige background matching logo
+    justifyContent: 'center',
+  },
+  avoider: { 
+    flex: 1 
+  },
+  overlay: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 0,
+    padding: 40,
+    width: '100%',
+    maxWidth: 420,
+    alignItems: 'stretch',
+    shadowColor: '#1a4d3a',
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 15,
+    borderTopWidth: 4,
+    borderTopColor: '#1a4d3a', // Dark green accent
+  },
+  brandSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logoPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#1a4d3a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  logoText: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  brandName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1a4d3a',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  brandTagline: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#d4b896', // Khaki/beige from logo
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 2,
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#1a4d3a', // Dark green matching logo
+    marginBottom: 6,
+    letterSpacing: -0.5,
+    textAlign: 'left',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    marginBottom: 12,
-    borderRadius: 8,
-    padding: 10,
-  },
-  picker: {
-    marginBottom: 16,
-    backgroundColor: '#f1f1f1',
+  subtitle: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: '#6b7280',
+    marginBottom: 28,
+    textAlign: 'left',
+    lineHeight: 20,
   },
   label: {
-    marginTop: 8,
-    marginBottom: 4,
-    fontWeight: '500',
+    marginTop: 14,
+    marginBottom: 6,
+    fontWeight: '600',
+    color: '#374151',
+    fontSize: 13,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  input: {
+    borderWidth: 0,
+    borderBottomWidth: 2,
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: 'transparent',
+    paddingVertical: 10,
+    paddingHorizontal: 0,
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '400',
+    marginBottom: 6,
+  },
+  pickerWrapper: {
+    borderWidth: 0,
+    borderBottomWidth: 2,
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: 'transparent',
+    marginBottom: 6,
+    overflow: Platform.OS === 'android' ? 'hidden' : 'visible',
+  },
+  picker: {
+    height: 44,
+    width: '100%',
+    color: '#111827',
+    backgroundColor: 'transparent',
+  },
+  pickerIOS: {
+    height: 100,
+    width: '100%',
+    color: '#111827',
+    backgroundColor: 'transparent',
+  },
+  pickerItemIOS: {
+    fontSize: 16,
+    height: 100,
+    color: '#111827',
+  },
+  imageButton: {
+    backgroundColor: '#1a4d3a',
+    borderRadius: 0,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+    marginTop: 4,
+    shadowColor: '#1a4d3a',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  imageButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   imagePreview: {
     width: 100,
     height: 100,
-    marginTop: 10,
-    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 12,
+    borderRadius: 0,
     alignSelf: 'center',
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+  },
+  submitButton: {
+    backgroundColor: '#1a4d3a', // Dark green from logo
+    borderRadius: 0,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 28,
+    marginBottom: 16,
+    shadowColor: '#1a4d3a',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  submitButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  buttonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  footerText: {
+    color: '#6b7280',
+    fontSize: 14,
+    fontWeight: '400',
+  },
+  footerLink: {
+    color: '#1a4d3a',
+    fontWeight: '600',
+    marginLeft: 8,
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
 });

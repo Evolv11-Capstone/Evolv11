@@ -1,4 +1,4 @@
-export interface PlayerCardProps {
+export type PlayerCardProps = {
   imageUrl: string;
   name: string;
   nationality: string;
@@ -12,5 +12,6 @@ export interface PlayerCardProps {
     physical: number;
     coachGrade?: number;
   };
-  onPositionChange?: (newPosition: string) => void; // Moved here
-}
+  onPositionChange?: (newPosition: string) => void;
+  compact?: boolean; // ⬅️ New prop
+};

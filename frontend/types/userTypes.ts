@@ -18,7 +18,8 @@ export type User = {
   nationality: string;
   role: 'player' | 'coach';
   image_url?: string;                    // Profile image from S3 (nullable for coaches)
-  teamIds: number[];                     // Teams this user belongs to (if implemented)
+  teamIds: number[];
+  created_at: string;                     // Account creation date
 };
 
 // Input shape for login form

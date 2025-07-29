@@ -6,6 +6,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'; 
 // React Navigation's bottom tab navigator for organizing post-auth screens
 
+import { Ionicons } from '@expo/vector-icons';
+
 import TeamSetupScreen from '../screens/PostAuth/TeamSetupScreen'; 
 // Screen where users create or request to join teams
 
@@ -24,15 +26,54 @@ const Tab = createBottomTabNavigator<PostAuthTabsParamList>();
 // Export the main post-auth navigation tabs
 export default function PostAuthTabsNavigator() {
   return (
-    <Tab.Navigator>
-      {/* Tab for coaches to create or request to join teams */}
-      <Tab.Screen name="TeamSetup" component={TeamSetupScreen} />
-
-      {/* Tab listing user's currently joined teams */}
-      <Tab.Screen name="ActiveClubs" component={ActiveClubsScreen} />
-
-      {/* Tab for account actions — includes logout logic */}
-      <Tab.Screen name="AccountSettings" component={AccountSettingsScreen} />
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: '#111',
+        tabBarInactiveTintColor: '#888',
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          borderTopLeftRadius: 18,
+          borderTopRightRadius: 18,
+          height: 64,
+          borderTopWidth: 0.5,
+          borderColor: '#e0e0e0',
+          shadowColor: '#000',
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: -2 },
+          elevation: 8,
+        },
+        tabBarLabelStyle: {
+          fontWeight: '700',
+          fontSize: 14,
+          letterSpacing: 0.2,
+          marginBottom: 6,
+        },
+        tabBarIcon: ({ color, size, focused }) => {
+          let iconName: string = '';
+          if (route.name === 'TeamSetup') iconName = focused ? 'add-circle' : 'add-circle-outline';
+          if (route.name === 'ActiveClubs') iconName = focused ? 'people' : 'people-outline';
+          if (route.name === 'AccountSettings') iconName = focused ? 'settings' : 'settings-outline';
+          return <Ionicons name={iconName as any} size={22} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen
+        name="TeamSetup"
+        component={TeamSetupScreen}
+        options={{ title: 'Team Setup' }}
+      />
+      <Tab.Screen
+        name="ActiveClubs"
+        component={ActiveClubsScreen}
+        options={{ title: 'Clubs' }}
+      />
+      <Tab.Screen
+        name="AccountSettings"
+        component={AccountSettingsScreen}
+        options={{ title: 'Account' }}
+      />
     </Tab.Navigator>
   );
 }

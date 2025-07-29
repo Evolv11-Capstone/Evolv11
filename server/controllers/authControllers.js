@@ -30,6 +30,7 @@ exports.registerUser = async (req, res) => {
       role,
       password,
       image_url: image_url || null, // fallback to null if not provided
+      created_at: new Date() // Set current time as created_at
     });
 
     //  Store session for persistent login

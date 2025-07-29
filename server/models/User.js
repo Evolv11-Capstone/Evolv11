@@ -20,6 +20,7 @@ class User {
     this.role = role;
     this.image_url = image_url || null; // Optional field for player image
     this.#passwordHash = password_hash;
+    this.created_at =  new Date(); // Default to current time
   }
 
   /**
@@ -36,16 +37,16 @@ class User {
    * @param {object} data - New user data including password and optional image_url
    * @returns {Promise<User>} - Created User instance
    */
-  static async create({ name, email, age, nationality, role, password, image_url }) {
+  static async create({ name, email, age, nationality, role, password, image_url, created_at }) {
     // Step 1: Securely hash the password
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     // Step 2: Insert the new user into the database
     const result = await knex.raw(`
-      INSERT INTO users (name, email, age, nationality, role, password_hash, image_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (name, email, age, nationality, role, password_hash, image_url, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
-    `, [name, email, age, nationality, role, passwordHash, image_url || null]);
+    `, [name, email, age, nationality, role, passwordHash, image_url, created_at || null]);
 
     // Step 3: Return new User instance
     return new User(result.rows[0]);

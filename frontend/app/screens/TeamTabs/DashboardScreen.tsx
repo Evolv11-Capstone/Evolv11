@@ -63,29 +63,38 @@ export default function DashboardScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Team Dashboard</Text>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Team Dashboard</Text>
+        <Text style={styles.subtitle}>Manage your team operations</Text>
+      </View>
 
       {/* Section: Pending Requests (Coach only) */}
       {user?.role === 'coach' && (
-        <>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pending Requests</Text>
           {requests.length === 0 ? (
-            <Text style={styles.noData}>No pending requests.</Text>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No pending requests</Text>
+              <Text style={styles.emptySubtext}>New join requests will appear here</Text>
+            </View>
           ) : (
-            requests.map((req) => (
-              <RequestCard
-                key={req.id}
-                id={req.id}
-                userName={req.user_name || 'Unknown'}
-                role={req.role || ''}
-                status={req.status}
-                onApprove={() => handleApprove(req.id, req.role)}
-                onReject={() => handleReject(req.id, req.role)}
-              />
-            ))
+            <View style={styles.requestsList}>
+              {requests.map((req) => (
+                <View key={req.id} style={styles.requestWrapper}>
+                  <RequestCard
+                    id={req.id}
+                    userName={req.user_name || 'Unknown'}
+                    role={req.role || ''}
+                    status={req.status}
+                    onApprove={() => handleApprove(req.id, req.role)}
+                    onReject={() => handleReject(req.id, req.role)}
+                  />
+                </View>
+              ))}
+            </View>
           )}
-        </>
+        </View>
       )}
 
       {/* Future sections here: Tactical Ratings, Top Performers, etc. */}
@@ -93,24 +102,93 @@ export default function DashboardScreen() {
   );
 }
 
-// Styling
+// Styles - Evolv11 Brand Colors & Nike-inspired Design
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    backgroundColor: '#fff',
+    flexGrow: 1,
+    backgroundColor: '#f5f3f0', // Warm beige background matching logo
+    paddingHorizontal: 20,
+    paddingBottom: 100, // Extra padding to avoid tab bar
   },
   header: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    paddingTop: 60,
+    paddingBottom: 40,
+    alignItems: 'flex-start',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#1a4d3a', // Dark green matching logo
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#6b7280',
+    lineHeight: 22,
+  },
+  section: {
+    backgroundColor: '#ffffff',
+    borderRadius: 0,
+    padding: 32,
+    marginBottom: 24,
+    shadowColor: '#1a4d3a',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+    borderTopWidth: 3,
+    borderTopColor: '#1a4d3a',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '600',
-    marginVertical: 12,
+    color: '#1a4d3a',
+    marginBottom: 20,
+    letterSpacing: -0.3,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  requestsList: {
+    gap: 16,
+  },
+  requestWrapper: {
+    borderRadius: 0,
+    overflow: 'hidden',
   },
   noData: {
     fontStyle: 'italic',
-    color: '#666',
+    color: '#6b7280',
+    fontSize: 16,
+    textAlign: 'center',
+    marginVertical: 18,
+  },
+  requestCardWrapper: {
+    marginBottom: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 0,
+    shadowColor: '#1a4d3a',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    overflow: 'hidden',
   },
 });
