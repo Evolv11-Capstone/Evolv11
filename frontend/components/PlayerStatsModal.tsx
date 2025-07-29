@@ -7,21 +7,18 @@ import {
   Pressable,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import type { TeamPlayer } from '../types/playerTypes';
+import { 
+  submitPlayerMatchStats, 
+  getPlayerMatchStats,
+  type PlayerMatchStats,
+  type PlayerStatsSubmission
+} from '../adapters/moderateReviewsAdapter';
 
-export type PlayerMatchStats = {
-  goals: number;
-  assists: number;
-  saves: number;
-  tackles: number;
-  interceptions: number;
-  chances_created: number;
-  minutes_played: number;
-  coach_rating: number;
-};
-
-type PlayerStatsModalProps = {
+export type PlayerStatsModalProps = {
   visible: boolean;
   onClose: () => void;
   onSave: (stats: PlayerMatchStats) => void;
@@ -52,22 +49,91 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   playerName,
   position,
   matchDuration,
+  player,
+  matchId,
 }) => {
   const [stats, setStats] = useState<PlayerMatchStats>({ ...defaultStats });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (initialStats) {
-      setStats(initialStats);
-    } else {
-      setStats({ ...defaultStats, minutes_played: matchDuration });
-    }
-  }, [initialStats, matchDuration]);
+    const loadExistingStats = async () => {
+      if (visible && player?.id && matchId) {
+        setLoading(true);
+        try {
+          // Try to load existing stats for this player and match
+          const [existingStats, error] = await getPlayerMatchStats(player.id, matchId);
+          
+          if (existingStats) {
+            setStats(existingStats);
+          } else if (initialStats) {
+            setStats(initialStats);
+          } else {
+            setStats({ ...defaultStats, minutes_played: matchDuration });
+          }
+        } catch (error) {
+          console.error('Error loading existing stats:', error);
+          // Fall back to default stats
+          setStats({ ...defaultStats, minutes_played: matchDuration });
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadExistingStats();
+  }, [visible, player?.id, matchId, initialStats, matchDuration]);
 
   const handleIncrement = (key: keyof PlayerMatchStats) =>
     setStats((prev) => ({ ...prev, [key]: prev[key] + 1 }));
 
   const handleDecrement = (key: keyof PlayerMatchStats) =>
     setStats((prev) => ({ ...prev, [key]: Math.max(0, prev[key] - 1) }));
+
+  const handleSave = async () => {
+    if (!player?.id || !matchId) {
+      Alert.alert('Error', 'Missing player or match information');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const statsSubmission: PlayerStatsSubmission = {
+        player_id: player.id,
+        match_id: matchId,
+        ...stats,
+      };
+
+      const [result, error] = await submitPlayerMatchStats(statsSubmission);
+
+      if (error || !result) {
+        throw new Error(error?.message || 'Failed to save stats');
+      }
+
+      if (result.success) {
+        Alert.alert(
+          'Stats Saved!', 
+          `${playerName}'s stats have been updated. Overall rating: ${result.data.previous_attributes.overall_rating} → ${result.data.new_attributes.overall_rating}`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                onSave(stats); // Call the parent callback
+                onClose(); // Close the modal
+              }
+            }
+          ]
+        );
+      } else {
+        throw new Error(result.message || 'Failed to save stats');
+      }
+    } catch (error: any) {
+      console.error('Error saving stats:', error);
+      Alert.alert('Error', error.message || 'Failed to save player stats');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const fields: { key: keyof PlayerMatchStats; label: string; condition?: boolean }[] = [
     { key: 'goals', label: 'Goals' },
@@ -85,31 +151,47 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <Text style={styles.title}>Match Stats for {playerName}</Text>
-          <ScrollView>
-            {fields.map(({ key, label, condition }) =>
-              condition === false ? null : (
-                <View style={styles.row} key={key}>
-                  <Text style={styles.label}>{label}</Text>
-                  <View style={styles.controls}>
-                    <TouchableOpacity onPress={() => handleDecrement(key)}>
-                      <Text style={styles.controlBtn}>–</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.value}>{stats[key]}</Text>
-                    <TouchableOpacity onPress={() => handleIncrement(key)}>
-                      <Text style={styles.controlBtn}>+</Text>
-                    </TouchableOpacity>
+          
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#1a4d3a" />
+              <Text style={styles.loadingText}>Loading existing stats...</Text>
+            </View>
+          ) : (
+            <ScrollView>
+              {fields.map(({ key, label, condition }) =>
+                condition === false ? null : (
+                  <View style={styles.row} key={key}>
+                    <Text style={styles.label}>{label}</Text>
+                    <View style={styles.controls}>
+                      <TouchableOpacity onPress={() => handleDecrement(key)}>
+                        <Text style={styles.controlBtn}>–</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.value}>{stats[key]}</Text>
+                      <TouchableOpacity onPress={() => handleIncrement(key)}>
+                        <Text style={styles.controlBtn}>+</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              )
-            )}
-          </ScrollView>
+                )
+              )}
+            </ScrollView>
+          )}
 
           <View style={styles.buttonRow}>
-            <Pressable style={styles.cancelBtn} onPress={onClose}>
+            <Pressable style={styles.cancelBtn} onPress={onClose} disabled={saving}>
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
-            <Pressable style={styles.saveBtn} onPress={() => onSave(stats)}>
-              <Text style={styles.saveText}>Save Stats</Text>
+            <Pressable 
+              style={[styles.saveBtn, saving && styles.saveBtnDisabled]} 
+              onPress={handleSave}
+              disabled={saving || loading}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={styles.saveText}>Save Stats</Text>
+              )}
             </Pressable>
           </View>
         </View>
@@ -226,5 +308,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  saveBtnDisabled: {
+    backgroundColor: '#999',
+    opacity: 0.6,
   },
 });

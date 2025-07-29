@@ -41,9 +41,10 @@ const getMatchesForTeam = async (req, res) => {
       goals_for: match.team_score,
       goals_against: match.opponent_score,
     }));
-
-    console.log('Fetched matches for team:', team_id, mappedMatches);
-
+    // Return matches with mapped fields
+    if (mappedMatches.length === 0) {
+      return res.status(404).json({ message: 'No matches found for this team' });
+    }
     res.json(mappedMatches);
   } catch (error) {
     console.error('Error fetching matches:', error);
@@ -66,9 +67,64 @@ const getMatchById = async (req, res) => {
       return res.status(404).json({ error: 'Match not found' });
     }
 
+
     res.json(match);
   } catch (err) {
     console.error('Error fetching match by ID:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// PUT /api/matches/:id - Update match details
+const updateMatch = async (req, res) => {
+  try {
+    const matchId = parseInt(req.params.id);
+    const { opponent, team_score, opponent_score, match_date } = req.body;
+
+    if (isNaN(matchId)) {
+      return res.status(400).json({ error: 'Invalid match ID' });
+    }
+
+    if (!opponent || match_date === undefined) {
+      return res.status(400).json({ error: 'Missing required match data' });
+    }
+
+    const updatedMatch = await Match.update(matchId, {
+      opponent,
+      team_score,
+      opponent_score,
+      match_date,
+    });
+
+    if (!updatedMatch) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    res.json(updatedMatch);
+  } catch (err) {
+    console.error('Error updating match:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// DELETE /api/matches/:id - Delete match and all related data
+const deleteMatch = async (req, res) => {
+  try {
+    const matchId = parseInt(req.params.id);
+
+    if (isNaN(matchId)) {
+      return res.status(400).json({ error: 'Invalid match ID' });
+    }
+
+    const deleted = await Match.delete(matchId);
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    res.json({ message: 'Match and all related data deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting match:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -77,6 +133,8 @@ module.exports = {
   createMatch,
   getMatchesForTeam,
   getMatchById, //  Export it
+  updateMatch,
+  deleteMatch,
 };
 
 

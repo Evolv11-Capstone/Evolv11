@@ -18,6 +18,8 @@ import {
 } from '../../../adapters/playerAdapters';
 import PlayerCard from '../../../components/PlayerCard';
 import PlayerStatsSummary from '../../../components/PlayerStatsSummary';
+import PerNinetyMinutesExpectations from '../../../components/PerNinetyMinutesExpectations';
+import GrowthChart from '../../../components/GrowthChart';
 
 type PlayerDetailRouteProp = RouteProp<RootStackParamList, 'PlayerDetail'>;
 
@@ -122,21 +124,46 @@ export default function PlayerDetailScreen() {
       </View>
 
       {moderateStats && (
-        <View style={styles.statsWrapper}>
-          <Text style={styles.sectionTitle}>All-Time Match Stats</Text>
-          <PlayerStatsSummary
-            stats={{
-              goals: moderateStats.goals,
-              assists: moderateStats.assists,
-              saves: moderateStats.saves,
-              tackles: moderateStats.tackles,
-              interceptions: moderateStats.interceptions,
-              chancesCreated: moderateStats.chances_created,
-              minutesPlayed: moderateStats.minutes_played,
-              coachRating: moderateStats.coach_rating,
-            }}
-          />
-        </View>
+        <>
+          <View style={styles.statsWrapper}>
+            <Text style={styles.sectionTitle}>All-Time Match Stats</Text>
+            <PlayerStatsSummary
+              stats={{
+                goals: moderateStats.goals,
+                assists: moderateStats.assists,
+                saves: moderateStats.saves,
+                tackles: moderateStats.tackles,
+                interceptions: moderateStats.interceptions,
+                chancesCreated: moderateStats.chances_created,
+                minutesPlayed: moderateStats.minutes_played,
+                coachRating: moderateStats.coach_rating,
+              }}
+            />
+          </View>
+
+          <View style={styles.expectationsWrapper}>
+            <Text style={styles.sectionTitle}>Performance Expectations</Text>
+            <Text style={styles.sectionSubtitle}>Per 90 minutes based on historical data</Text>
+            <PerNinetyMinutesExpectations
+              stats={{
+                goals: moderateStats.goals,
+                assists: moderateStats.assists,
+                saves: moderateStats.saves,
+                tackles: moderateStats.tackles,
+                interceptions: moderateStats.interceptions,
+                chancesCreated: moderateStats.chances_created,
+                minutesPlayed: moderateStats.minutes_played,
+                coachRating: moderateStats.coach_rating,
+              }}
+            />
+          </View>
+
+          <View style={styles.growthWrapper}>
+            <Text style={styles.sectionTitle}>Player Development</Text>
+            <Text style={styles.sectionSubtitle}>Attribute progression throughout the season</Text>
+            <GrowthChart playerId={playerId} />
+          </View>
+        </>
       )}
     </ScrollView>
   );
@@ -225,5 +252,47 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
     letterSpacing: -0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '400',
+    marginBottom: 16,
+    textAlign: 'center',
+    letterSpacing: -0.1,
+  },
+  expectationsWrapper: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 0, // Sharp edges
+    padding: 20,
+    borderTopWidth: 3,
+    borderTopColor: '#2c5530', // Slightly different green for distinction
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  growthWrapper: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 0, // Sharp edges
+    padding: 20,
+    borderTopWidth: 3,
+    borderTopColor: '#3a4d5c', // Different color for growth chart section
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
 });

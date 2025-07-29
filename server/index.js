@@ -58,6 +58,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const playerRoutes = require('./routes/playerRoutes');
 const matchRoutes = require('./routes/matchRoutes');
 const lineupRoutes = require('./routes/lineupRoutes');
+const moderateReviewRoutes = require('./routes/moderateReviewRoutes');
 
 ///////////////////////////////
 // Route Mounting
@@ -78,6 +79,9 @@ app.use('/api/matches', matchRoutes);
 
 // Lineup management
 app.use('/api/lineups', lineupRoutes);
+
+// Player stats and reviews
+app.use('/api/reviews', checkAuthentication, moderateReviewRoutes);
 
 // Public endpoints
 app.use('/api/uploads', uploadRoutes);

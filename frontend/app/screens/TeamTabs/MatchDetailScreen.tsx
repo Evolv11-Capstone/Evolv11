@@ -195,11 +195,23 @@ const MatchDetailScreen = () => {
         {match && (
           <View style={styles.headerSection}>
             <View style={styles.matchHeaderContainer}>
-              <Text style={styles.matchTitle}>
+              <Text 
+                style={styles.matchTitle}
+                numberOfLines={2}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.7}
+                ellipsizeMode="tail"
+              >
                 {activeTeamName || 'YOUR TEAM'}
               </Text>
               <Text style={styles.versusText}>VS</Text>
-              <Text style={styles.opponentTitle}>
+              <Text 
+                style={styles.opponentTitle}
+                numberOfLines={2}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.7}
+                ellipsizeMode="tail"
+              >
                 {match.opponent.toUpperCase()}
               </Text>
             </View>
@@ -253,9 +265,13 @@ const MatchDetailScreen = () => {
                 player={selectedPlayer}
                 matchId={matchId}
                 onClose={() => setSelectedPlayer(null)}
-                onSave={() => {}} // Provide a suitable handler here
+                onSave={(stats) => {
+                  console.log('Player stats saved:', stats);
+                  // The modal now handles the backend integration automatically
+                  // You could refresh player data here if needed
+                }}
                 playerName={selectedPlayer.name}
-                position={selectedPosition || ''}
+                position={selectedPlayer.position || 'Unknown'}
                 matchDuration={90} // Replace with actual match duration if available
               />
             )}
@@ -328,6 +344,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
     paddingVertical: 8,
+    paddingHorizontal: 8,
+    minHeight: 60,
   },
   matchTitle: {
     fontSize: 24,
@@ -335,15 +353,20 @@ const styles = StyleSheet.create({
     color: '#1a4d3a',
     letterSpacing: -0.5,
     textTransform: 'uppercase',
-    marginRight: 12,
+    marginRight: 8,
+    flex: 1,
+    textAlign: 'right',
+    flexShrink: 1,
+    minWidth: 0,
   },
   versusText: {
     fontSize: 18,
     fontWeight: '900',
     color: '#d4b896',
     letterSpacing: 1,
-    marginHorizontal: 12,
+    marginHorizontal: 8,
     opacity: 0.8,
+    flexShrink: 0,
   },
   opponentTitle: {
     fontSize: 24,
@@ -351,7 +374,11 @@ const styles = StyleSheet.create({
     color: '#1a4d3a',
     letterSpacing: -0.5,
     textTransform: 'uppercase',
-    marginLeft: 12,
+    marginLeft: 8,
+    flex: 1,
+    textAlign: 'left',
+    flexShrink: 1,
+    minWidth: 0,
   },
   matchInfoContainer: {
     alignItems: 'center',
