@@ -16,10 +16,12 @@ import {
   getPlayerModerateSummary,
   updatePlayerPosition,
 } from '../../../adapters/playerAdapters';
+import { getUserById } from '../../../adapters/userAdapters';
 import PlayerCard from '../../../components/PlayerCard';
 import PlayerStatsSummary from '../../../components/PlayerStatsSummary';
 import PerNinetyMinutesExpectations from '../../../components/PerNinetyMinutesExpectations';
 import GrowthChart from '../../../components/GrowthChart';
+import SpiderGraph from '../../../components/SpiderGraph';
 
 type PlayerDetailRouteProp = RouteProp<RootStackParamList, 'PlayerDetail'>;
 
@@ -31,13 +33,30 @@ export default function PlayerDetailScreen() {
 
   const [player, setPlayer] = useState<TeamPlayer | null>(null);
   const [moderateStats, setModerateStats] = useState<ModerateStats | null>(null);
+  const [userData, setUserData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Note: User age is stored as a string in the database, not date_of_birth
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const fetchedPlayer = await fetchPlayerById(playerId);
         setPlayer(fetchedPlayer);
+
+        // Fetch user data if user_id exists
+        if (fetchedPlayer.user_id) {
+          console.log('Fetching user data for user_id:', fetchedPlayer.user_id);
+          const [user, userError] = await getUserById(fetchedPlayer.user_id);
+          if (!userError && user) {
+            console.log('User data fetched:', user);
+            setUserData(user);
+          } else {
+            console.log('Error fetching user data:', userError);
+          }
+        } else {
+          console.log('No user_id found for player:', fetchedPlayer);
+        }
 
         const [stats, statsError] = await getPlayerModerateSummary(playerId);
         if (!statsError && stats) {
@@ -104,6 +123,35 @@ export default function PlayerDetailScreen() {
         <Text style={styles.subtitle}>View player profile and statistics</Text>
       </View>
 
+      {/* Player Info Section */}
+      <View style={styles.playerInfoSection}>
+        <Text style={styles.playerName}>{player.name}</Text>
+        <View style={styles.playerMetadata}>
+          <View style={styles.metadataItem}>
+            <Text style={styles.metadataLabel}>Age</Text>
+            <Text style={styles.metadataValue}>
+              {userData && userData.age
+                ? `${userData.age} years`
+                : 'Unknown'
+              }
+            </Text>
+          </View>
+          <View style={styles.metadataItem}>
+            <Text style={styles.metadataLabel}>Joined Club</Text>
+            <Text style={styles.metadataValue}>
+              {player.created_at 
+                ? new Date(player.created_at).toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })
+                : 'Unknown'
+              }
+            </Text>
+          </View>
+        </View>
+      </View>
+
       <View style={styles.cardWrapper}>
         <PlayerCard
           imageUrl={player.image_url ?? ''}
@@ -122,6 +170,8 @@ export default function PlayerDetailScreen() {
           onPositionChange={handlePositionChange}
         />
       </View>
+
+
 
       {moderateStats && (
         <>
@@ -163,6 +213,20 @@ export default function PlayerDetailScreen() {
             <Text style={styles.sectionSubtitle}>Attribute progression throughout the season</Text>
             <GrowthChart playerId={playerId} />
           </View>
+
+          <View style={styles.spiderWrapper}>
+        <Text style={styles.sectionTitle}>Player Attributes</Text>
+        <Text style={styles.sectionSubtitle}>Core strengths visualization</Text>
+        <SpiderGraph
+          stats={{
+            shooting: player.shooting ?? 0,
+            passing: player.passing ?? 0,
+            dribbling: player.dribbling ?? 0,
+            defense: player.defense ?? 0,
+            physical: player.physical ?? 0,
+          }}
+        />
+      </View>
         </>
       )}
     </ScrollView>
@@ -211,6 +275,55 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: '400',
   },
+  playerInfoSection: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 0,
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#d4b896',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  playerName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a4d3a',
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+  playerMetadata: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  metadataItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  metadataLabel: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  metadataValue: {
+    fontSize: 16,
+    color: '#1a4d3a',
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
   cardWrapper: {
     marginHorizontal: 20,
     marginBottom: 20,
@@ -219,6 +332,23 @@ const styles = StyleSheet.create({
     padding: 20,
     borderLeftWidth: 4,
     borderLeftColor: '#1a4d3a',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  spiderWrapper: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 0, // Sharp edges
+    padding: 20,
+    borderTopWidth: 3,
+    borderTopColor: '#d4b896', // Gold accent for spider graph
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -285,7 +415,7 @@ const styles = StyleSheet.create({
     borderRadius: 0, // Sharp edges
     padding: 20,
     borderTopWidth: 3,
-    borderTopColor: '#3a4d5c', // Different color for growth chart section
+    borderTopColor: '#d4b896', // Different color for growth chart section
     shadowColor: '#000',
     shadowOffset: {
       width: 0,

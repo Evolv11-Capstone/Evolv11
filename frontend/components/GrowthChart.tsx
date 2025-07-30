@@ -98,6 +98,8 @@ const GrowthChart: React.FC<Props> = ({ playerId }) => {
   // Calculate chart dimensions
   const chartHeight = 200;
   const chartPadding = 20;
+  const labelsHeight = 80; // Space for match labels
+  const totalHeight = chartHeight + labelsHeight;
   const availableWidth = width - 80; // Account for margins and padding
   const pointSpacing = Math.max(40, availableWidth / Math.max(snapshots.length - 1, 1));
 
@@ -131,6 +133,30 @@ const GrowthChart: React.FC<Props> = ({ playerId }) => {
       .join(' ');
   };
 
+  // Create timeline with unique months
+  const createTimeline = () => {
+    const monthPositions: { month: string; position: number; year: string }[] = [];
+    const seenMonths = new Set<string>();
+
+    snapshots.forEach((snapshot, index) => {
+      const date = new Date(snapshot.match_date);
+      const monthYear = `${date.toLocaleDateString('en-US', { month: 'short' })} ${date.getFullYear()}`;
+      
+      if (!seenMonths.has(monthYear)) {
+        seenMonths.add(monthYear);
+        monthPositions.push({
+          month: date.toLocaleDateString('en-US', { month: 'short' }),
+          year: date.getFullYear().toString(),
+          position: index * pointSpacing + chartPadding
+        });
+      }
+    });
+
+    return monthPositions;
+  };
+
+  const timeline = createTimeline();
+
   const statLines = [
     { key: 'overall_rating', color: '#1a4d3a', label: 'Overall', width: 3 },
     { key: 'shooting', color: '#e74c3c', label: 'Shooting', width: 2 },
@@ -143,11 +169,14 @@ const GrowthChart: React.FC<Props> = ({ playerId }) => {
   return (
     <View style={styles.container}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={[styles.chartContainer, { width: Math.max(availableWidth, snapshots.length * pointSpacing + 2 * chartPadding) }]}>
+        <View style={[styles.chartContainer, { 
+          width: Math.max(availableWidth, snapshots.length * pointSpacing + 2 * chartPadding),
+          height: totalHeight 
+        }]}>
           {/* Chart Background */}
           <View style={[styles.chartBackground, { height: chartHeight }]}>
-            {/* Grid lines */}
-            {[0, 25, 50, 75, 100].map(value => {
+            {/* Grid lines and labels for every 10 points */}
+            {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(value => {
               if (value < minValue || value > maxValue) return null;
               const y = scaleY(value);
               return (
@@ -209,25 +238,32 @@ const GrowthChart: React.FC<Props> = ({ playerId }) => {
             />
           ))}
 
-          {/* Match Labels */}
-          <View style={styles.matchLabels}>
-            {snapshots.map((snapshot, index) => (
-              <View
-                key={`label-${index}`}
-                style={[
-                  styles.matchLabel,
-                  { left: index * pointSpacing + chartPadding - 30 }
-                ]}
-              >
-                <Text style={styles.matchLabelText} numberOfLines={1}>
-                  vs {snapshot.opponent}
-                </Text>
-                <Text style={styles.matchDateText}>
-                  {new Date(snapshot.match_date).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}
-                </Text>
+          {/* Timeline with unique months */}
+          <View style={styles.timeline}>
+            {/* Timeline base line */}
+            <View style={styles.timelineBase} />
+            
+            {/* Timeline markers and labels */}
+            {timeline.map((item, index) => (
+              <View key={`timeline-${index}`} style={styles.timelineItemContainer}>
+                {/* Vertical marker line */}
+                <View 
+                  style={[
+                    styles.timelineMarker,
+                    { left: item.position }
+                  ]} 
+                />
+                
+                {/* Month label */}
+                <View 
+                  style={[
+                    styles.timelineLabel,
+                    { left: item.position - 25 }
+                  ]}
+                >
+                  <Text style={styles.timelineMonthText}>{item.month}</Text>
+                  <Text style={styles.timelineYearText}>{item.year}</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -282,6 +318,8 @@ const styles = StyleSheet.create({
   chartContainer: {
     position: 'relative',
     marginVertical: 20,
+    marginLeft: 40, // Add left margin for rating labels
+    minHeight: 300, // Ensure enough space for chart + labels
   },
   chartBackground: {
     position: 'relative',
@@ -295,17 +333,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: '#e8e8e8',
+    backgroundColor: '#f0f0f0',
     flexDirection: 'row',
     alignItems: 'center',
   },
   gridLabel: {
     position: 'absolute',
-    left: -30,
-    fontSize: 12,
-    color: '#666',
-    width: 25,
+    left: -35,
+    fontSize: 11,
+    color: '#1a4d3a',
+    width: 30,
     textAlign: 'right',
+    fontWeight: '600',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 2,
+    paddingVertical: 1,
+    borderRadius: 2,
   },
   linesContainer: {
     position: 'absolute',
@@ -333,27 +376,77 @@ const styles = StyleSheet.create({
   },
   matchLabels: {
     position: 'absolute',
-    top: 220,
+    top: 210, // Position just below the chart (chartHeight + 10)
+    left: 0,
+    right: 0,
+    height: 80,
+  },
+  timeline: {
+    position: 'absolute',
+    top: 210, // Position just below the chart
     left: 0,
     right: 0,
     height: 60,
   },
-  matchLabel: {
+  timelineBase: {
     position: 'absolute',
-    width: 60,
+    top: 20,
+    left: 20,
+    right: 20,
+    height: 2,
+    backgroundColor: '#d4b896',
+    borderRadius: 1,
+  },
+  timelineItemContainer: {
+    position: 'absolute',
+    top: 0,
+    height: '100%',
+  },
+  timelineMarker: {
+    position: 'absolute',
+    top: 15,
+    width: 2,
+    height: 10,
+    backgroundColor: '#1a4d3a',
+    borderRadius: 1,
+  },
+  timelineLabel: {
+    position: 'absolute',
+    top: 28,
+    width: 50,
     alignItems: 'center',
   },
-  matchLabelText: {
+  timelineMonthText: {
     fontSize: 12,
     color: '#1a4d3a',
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
+  },
+  timelineYearText: {
+    fontSize: 9,
+    color: '#666',
+    fontWeight: '400',
+    textAlign: 'center',
+    marginTop: 1,
+  },
+  matchLabel: {
+    position: 'absolute',
+    width: 40,
+    alignItems: 'center',
   },
   matchDateText: {
     fontSize: 10,
-    color: '#666',
+    color: '#1a4d3a',
+    fontWeight: '600',
     textAlign: 'center',
-    marginTop: 2,
+    backgroundColor: '#f5f3f0',
+    paddingHorizontal: 3,
+    paddingVertical: 2,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#d4b896',
+    marginBottom: 2,
+    minHeight: 18,
   },
   legend: {
     marginTop: 20,
