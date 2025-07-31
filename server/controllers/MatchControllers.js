@@ -3,14 +3,68 @@ const Match = require('../models/Match');
 
 const createMatch = async (req, res) => {
   try {
+    const { team_id, season_id, opponent, team_score, opponent_score, match_date } = req.body;
+
+    // Validate required fields
+    if (!team_id || !season_id || !opponent || match_date === undefined) {
+      return res.status(400).json({ 
+        error: 'Missing required match data: team_id, season_id, opponent, and match_date are required' 
+      });
+    }
+
+    // Validate season_id is a number
+    if (isNaN(parseInt(season_id))) {
+      return res.status(400).json({ 
+        error: 'season_id must be a valid number' 
+      });
+    }
+
+    // Create match with season validation
+    const [newMatch] = await Match.create({
+      team_id: parseInt(team_id),
+      season_id: parseInt(season_id),
+      opponent,
+      team_score,
+      opponent_score,
+      match_date,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: newMatch,
+      message: 'Match created successfully'
+    });
+
+  } catch (error) {
+    console.error('Error creating match:', error);
+    
+    // Handle specific validation errors
+    if (error.message.includes('Season not found') || 
+        error.message.includes('season bounds') || 
+        error.message.includes('does not belong to')) {
+      return res.status(400).json({ 
+        error: error.message 
+      });
+    }
+
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: 'Failed to create match'
+    });
+  }
+};
+
+// Legacy create match function (without season validation)
+const createMatchLegacy = async (req, res) => {
+  try {
     const { team_id, opponent, team_score, opponent_score, match_date } = req.body;
 
     if (!team_id || !opponent || match_date === undefined) {
       return res.status(400).json({ error: 'Missing required match data' });
     }
 
-    // Map frontend fields to DB columns
-    const [newMatch] = await Match.create({
+    // Use legacy create method
+    const [newMatch] = await Match.createLegacy({
       team_id,
       opponent,
       team_score,
@@ -20,7 +74,7 @@ const createMatch = async (req, res) => {
 
     res.status(201).json(newMatch);
   } catch (error) {
-    console.error('Error creating match:', error);
+    console.error('Error creating match (legacy):', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -41,11 +95,13 @@ const getMatchesForTeam = async (req, res) => {
       goals_for: match.team_score,
       goals_against: match.opponent_score,
     }));
-    // Return matches with mapped fields
-    if (mappedMatches.length === 0) {
-      return res.status(404).json({ message: 'No matches found for this team' });
-    }
-    res.json(mappedMatches);
+    
+    // Always return matches array, even if empty (don't return 404 for empty results)
+    res.json({
+      success: true,
+      data: mappedMatches,
+      count: mappedMatches.length
+    });
   } catch (error) {
     console.error('Error fetching matches:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -131,6 +187,7 @@ const deleteMatch = async (req, res) => {
 
 module.exports = {
   createMatch,
+  createMatchLegacy,
   getMatchesForTeam,
   getMatchById, //  Export it
   updateMatch,

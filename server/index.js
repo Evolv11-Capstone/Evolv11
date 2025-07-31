@@ -11,7 +11,7 @@ const app = express();
 ///////////////////////////////
 
 app.use(cors({
-  origin: 'http://10.0.12.90:8081', // Replace with Expo LAN/tunnel URL as needed
+  origin: 'http://192.168.1.202:8081', // Replace with Expo LAN/tunnel URL as needed
   credentials: true
 }));
 
@@ -59,6 +59,7 @@ const playerRoutes = require('./routes/playerRoutes');
 const matchRoutes = require('./routes/matchRoutes');
 const lineupRoutes = require('./routes/lineupRoutes');
 const moderateReviewRoutes = require('./routes/moderateReviewRoutes');
+const seasonRoutes = require('./routes/seasonRoutes');
 
 ///////////////////////////////
 // Route Mounting
@@ -73,6 +74,9 @@ app.use('/api/teams', checkAuthentication, teamRoutes); // ✅ includes /api/tea
 app.use('/api/player_team_requests', checkAuthentication, playerTeamRequestRoutes);
 app.use('/api/coach_team_requests', checkAuthentication, coachTeamRequestRoutes);
 app.use('/api/my_teams', checkAuthentication, myTeamRoutes);
+
+// Season management
+app.use('/api/seasons', checkAuthentication, seasonRoutes);
 
 // match management
 app.use('/api/matches', matchRoutes);

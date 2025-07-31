@@ -10,9 +10,10 @@ type Props = {
   player: TeamPlayer;
   onPress: () => void;
   onLongPress?: () => void; // <-- Add this line
+  hasStatsSubmitted?: boolean; // <-- Add this line for checkmark display
 };
 
-const MiniPlayerCard: React.FC<Props> = ({ player, onPress, onLongPress }) => {
+const MiniPlayerCard: React.FC<Props> = ({ player, onPress, onLongPress, hasStatsSubmitted = false }) => {
   const {
     name,
     nationality,
@@ -41,6 +42,13 @@ const MiniPlayerCard: React.FC<Props> = ({ player, onPress, onLongPress }) => {
       <View style={styles.ratingContainer}>
         <Text style={styles.ratingText}>{overall_rating ?? 0}</Text>
       </View>
+
+      {/* Stats Submitted Checkmark */}
+      {hasStatsSubmitted && (
+        <View style={styles.checkmarkContainer}>
+          <Text style={styles.checkmark}>✓</Text>
+        </View>
+      )}
 
       {/* Player Image */}
       <Image source={{ uri: validImage }} style={styles.image} />
@@ -115,6 +123,29 @@ const styles = StyleSheet.create({
     fontWeight: '900', // Ultra-bold Nike typography
     color: '#ffffff',
     letterSpacing: 0.3,
+  },
+  checkmarkContainer: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#32C759', // Nike green for success
+    borderRadius: 0, // Sharp edges
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  checkmark: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#ffffff',
+    lineHeight: 12,
   },
   image: {
     width: 34, // Increased from 32 to 34

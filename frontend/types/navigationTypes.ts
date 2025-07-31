@@ -31,6 +31,7 @@ export type TeamTabsParamList = {
   Dashboard: undefined;
   Players: undefined;
   MatchCenter: undefined;
+  SeasonManagement: undefined;
   GrowthInsights: undefined;
   TeamAnalysis: undefined;
 };

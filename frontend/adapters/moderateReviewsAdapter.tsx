@@ -151,5 +151,15 @@ export const getPlayerMatchStats = async (
   matchId: number
 ): Promise<[PlayerMatchStats | null, Error | null]> => {
   const url = `${API_BASE_URL}/reviews/player/${playerId}/match/${matchId}`;
-  return await fetchHandler<PlayerMatchStats>(url, basicFetchOptions);
+  const [response, error] = await fetchHandler<{ success: boolean; data: PlayerMatchStats }>(url, basicFetchOptions);
+  
+  if (error) {
+    return [null, error];
+  }
+  
+  if (response?.success && response?.data) {
+    return [response.data, null];
+  }
+  
+  return [null, new Error('No stats found for this player and match')];
 };

@@ -55,6 +55,7 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   const [stats, setStats] = useState<PlayerMatchStats>({ ...defaultStats });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false); // Track if we're updating existing stats
 
   useEffect(() => {
     const loadExistingStats = async () => {
@@ -64,12 +65,18 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
           // Try to load existing stats for this player and match
           const [existingStats, error] = await getPlayerMatchStats(player.id, matchId);
           
-          if (existingStats) {
+          if (existingStats && !error) {
+            console.log('Loaded existing stats for player:', player.id, existingStats);
             setStats(existingStats);
+            setIsUpdating(true);
           } else if (initialStats) {
+            console.log('Using initial stats provided:', initialStats);
             setStats(initialStats);
+            setIsUpdating(false);
           } else {
+            console.log('No existing stats found, using defaults');
             setStats({ ...defaultStats, minutes_played: matchDuration });
+            setIsUpdating(false);
           }
         } catch (error) {
           console.error('Error loading existing stats:', error);
@@ -78,6 +85,11 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
         } finally {
           setLoading(false);
         }
+      } else if (!visible) {
+        // Reset stats when modal is closed
+        setStats({ ...defaultStats });
+        setIsUpdating(false);
+        setLoading(false);
       }
     };
 
@@ -111,9 +123,11 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
       }
 
       if (result.success) {
+        const actionText = isUpdating ? 'updated' : 'saved';
+        
         Alert.alert(
-          'Stats Saved!', 
-          `${playerName}'s stats have been updated. Overall rating: ${result.data.previous_attributes.overall_rating} → ${result.data.new_attributes.overall_rating}`,
+          `Stats ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}!`, 
+          `${playerName}'s stats have been ${actionText}. Overall rating: ${result.data.previous_attributes.overall_rating} → ${result.data.new_attributes.overall_rating}`,
           [
             {
               text: 'OK',
@@ -150,7 +164,9 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
         <View style={styles.modal}>
-          <Text style={styles.title}>Match Stats for {playerName}</Text>
+          <Text style={styles.title}>
+            {isUpdating ? 'Update' : 'Enter'} Match Stats for {playerName}
+          </Text>
           
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -190,7 +206,9 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
               {saving ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text style={styles.saveText}>Save Stats</Text>
+                <Text style={styles.saveText}>
+                  {isUpdating ? 'Update Stats' : 'Save Stats'}
+                </Text>
               )}
             </Pressable>
           </View>

@@ -1,9 +1,42 @@
 // server/models/Match.js
 const db = require('../db/knex');
+const Season = require('./Season');
 
 const Match = {
-    // Create a new match
-  create: async ({ team_id, opponent, team_score, opponent_score, match_date }) => {
+    // Create a new match with season validation
+  create: async ({ team_id, season_id, opponent, team_score, opponent_score, match_date }) => {
+    // Validate season exists and match date is within season bounds
+    if (season_id) {
+      const season = await Season.findById(season_id);
+      
+      if (!season) {
+        throw new Error('Season not found');
+      }
+
+      // Validate that the match belongs to the same team as the season
+      if (season.team_id !== team_id) {
+        throw new Error('Season does not belong to the specified team');
+      }
+
+      // Validate match date is within season bounds
+      const matchDate = new Date(match_date);
+      const seasonStart = new Date(season.start_date);
+      const seasonEnd = new Date(season.end_date);
+
+      if (matchDate < seasonStart || matchDate > seasonEnd) {
+        throw new Error(
+          `Match date ${match_date} is outside season bounds (${season.start_date} to ${season.end_date})`
+        );
+      }
+    }
+
+    return await db('matches')
+      .insert({ team_id, season_id, opponent, team_score, opponent_score, match_date })
+      .returning('*');
+  },
+
+  // Legacy create method for backward compatibility (without season validation)
+  createLegacy: async ({ team_id, opponent, team_score, opponent_score, match_date }) => {
     return await db('matches')
       .insert({ team_id, opponent, team_score, opponent_score, match_date })
       .returning('*');

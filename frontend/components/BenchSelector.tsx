@@ -13,6 +13,7 @@ type Props = {
   maxSlots?: number; // Default is 7
   onAssign: (position: string) => void;
   onRemove: (position: string, playerId: number) => void;
+  playersWithStats?: Set<number>; // <-- Add this to track players with submitted stats
 };
 
 const BenchSelector: React.FC<Props> = ({
@@ -21,6 +22,7 @@ const BenchSelector: React.FC<Props> = ({
   maxSlots = 7,
   onAssign,
   onRemove,
+  playersWithStats = new Set(),
 }) => {
   return (
     <View style={styles.container}>
@@ -44,7 +46,10 @@ const BenchSelector: React.FC<Props> = ({
           >
             <Text style={styles.slotLabel}>{pos}</Text>
             <Text style={styles.playerName}>
-              {player ? `${player.name} (tap to remove)` : 'Tap to assign'}
+              {player ? 
+                `${player.name}${playersWithStats.has(player.id) ? ' ✓' : ''} (tap to remove)` : 
+                'Tap to assign'
+              }
             </Text>
           </TouchableOpacity>
         );

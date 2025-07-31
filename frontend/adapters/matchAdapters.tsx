@@ -7,6 +7,7 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 // Create a new match
 export const createMatch = async (matchData: {
   team_id: number;
+  season_id: number;
   opponent: string;
   team_score: number;
   opponent_score: number;
@@ -14,6 +15,20 @@ export const createMatch = async (matchData: {
 }) => {
   return await fetchHandler(
     `${API_BASE_URL}/matches`,
+    getPostOptions(matchData)
+  );
+};
+
+// Create a match without season (legacy support)
+export const createMatchLegacy = async (matchData: {
+  team_id: number;
+  opponent: string;
+  team_score: number;
+  opponent_score: number;
+  match_date: string;
+}) => {
+  return await fetchHandler(
+    `${API_BASE_URL}/matches/legacy`,
     getPostOptions(matchData)
   );
 };

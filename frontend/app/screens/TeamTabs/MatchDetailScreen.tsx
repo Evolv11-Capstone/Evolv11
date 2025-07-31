@@ -21,10 +21,12 @@ import {
   getFullLineupByMatch,
 } from '../../../adapters/lineupAdapters';
 import { getPlayersByTeam, getTeamById } from '../../../adapters/teamAdapters';
+import { getPlayerMatchStats } from '../../../adapters/moderateReviewsAdapter';
 import FormationSelector from '../../../components/FormationSelector';
 import TacticalBoard from '../../../components/TacticalBoard';
 import PlayerAssignmentBoard from '../../../components/PlayerAssignmentBoard';
 import PlayerStatsModal from '../../../components/PlayerStatsModal';
+import UpdateStatsInputModal from '../../../components/UpdateStatsInputModal';
 import type { TeamPlayer } from '../../../types/playerTypes';
 
 type Match = {
@@ -50,6 +52,30 @@ const MatchDetailScreen = () => {
   const [players, setPlayers] = useState<TeamPlayer[]>([]);
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<TeamPlayer | null>(null);
+  const [playersWithStats, setPlayersWithStats] = useState<Set<number>>(new Set());
+  const [showUpdateStatsModal, setShowUpdateStatsModal] = useState(false);
+  const [showPlayerStatsModal, setShowPlayerStatsModal] = useState(false);
+
+  // Function to load which players have submitted stats for this match
+  const loadPlayersWithStats = async (playersList: TeamPlayer[]) => {
+    const playersWithStatsSet = new Set<number>();
+    
+    // Check each player to see if they have stats for this match
+    await Promise.all(
+      playersList.map(async (player) => {
+        try {
+          const [stats, error] = await getPlayerMatchStats(player.id, matchId);
+          if (stats && !error) {
+            playersWithStatsSet.add(player.id);
+          }
+        } catch (error) {
+          console.log(`No stats found for player ${player.id}:`, error);
+        }
+      })
+    );
+    
+    setPlayersWithStats(playersWithStatsSet);
+  };
 
   useEffect(() => {
     const initializeScreen = async () => {
@@ -67,6 +93,11 @@ const MatchDetailScreen = () => {
 
         const [teamPlayers] = await getPlayersByTeam(activeTeamId!);
         setPlayers(teamPlayers || []);
+
+        // Load which players have submitted stats for this match
+        if (teamPlayers && teamPlayers.length > 0) {
+          await loadPlayersWithStats(teamPlayers);
+        }
 
         const [lineupData] = await getFullLineupByMatch(matchId);
         if (lineupData) {
@@ -160,6 +191,27 @@ const MatchDetailScreen = () => {
 
   const handlePlayerTap = (player: TeamPlayer) => {
     setSelectedPlayer(player);
+    
+    // Check if stats have already been submitted for this player
+    if (playersWithStats.has(player.id)) {
+      // Stats exist - show update confirmation modal
+      setShowUpdateStatsModal(true);
+    } else {
+      // No stats exist - show stats input modal directly
+      setShowPlayerStatsModal(true);
+    }
+  };
+
+  const handleCloseModals = () => {
+    setSelectedPlayer(null);
+    setShowUpdateStatsModal(false);
+    setShowPlayerStatsModal(false);
+  };
+
+  const handleUpdateInput = () => {
+    // Close the update confirmation modal and open the stats input modal
+    setShowUpdateStatsModal(false);
+    setShowPlayerStatsModal(true);
   };
 
   const assignedPlayerIds = [
@@ -249,6 +301,7 @@ const MatchDetailScreen = () => {
                 onUnassign={handleUnassign}
                 onBenchSlotTap={(slot) => setSelectedPosition(slot)}
                 onPlayerTap={handlePlayerTap}
+                playersWithStats={playersWithStats}
               />
             </View>
 
@@ -260,20 +313,35 @@ const MatchDetailScreen = () => {
             />
 
             {selectedPlayer && (
-              <PlayerStatsModal
-                visible={true}
-                player={selectedPlayer}
-                matchId={matchId}
-                onClose={() => setSelectedPlayer(null)}
-                onSave={(stats) => {
-                  console.log('Player stats saved:', stats);
-                  // The modal now handles the backend integration automatically
-                  // You could refresh player data here if needed
-                }}
-                playerName={selectedPlayer.name}
-                position={selectedPlayer.position || 'Unknown'}
-                matchDuration={90} // Replace with actual match duration if available
-              />
+              <>
+                <UpdateStatsInputModal
+                  visible={showUpdateStatsModal}
+                  onClose={handleCloseModals}
+                  onUpdateInput={handleUpdateInput}
+                  playerName={selectedPlayer.name}
+                />
+
+                <PlayerStatsModal
+                  visible={showPlayerStatsModal}
+                  player={selectedPlayer}
+                  matchId={matchId}
+                  onClose={handleCloseModals}
+                  onSave={async (stats) => {
+                    console.log('Player stats saved:', stats);
+                    // Update the players with stats set to show the checkmark
+                    if (selectedPlayer) {
+                      setPlayersWithStats(prev => new Set(prev).add(selectedPlayer.id));
+                    }
+                    // Optionally refresh all player stats to ensure consistency
+                    await loadPlayersWithStats(players);
+                    // Close all modals
+                    handleCloseModals();
+                  }}
+                  playerName={selectedPlayer.name}
+                  position={selectedPlayer.position || 'Unknown'}
+                  matchDuration={90} // Replace with actual match duration if available
+                />
+              </>
             )}
           </>
         )}

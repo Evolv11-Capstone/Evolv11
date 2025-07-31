@@ -20,6 +20,7 @@ type Props = {
   onUnassign: (pos: string, playerId: number) => void;
   onBenchSlotTap: (slot: string) => void;
   onPlayerTap: (player: TeamPlayer) => void;
+  playersWithStats?: Set<number>; // <-- Add this to track players with submitted stats
 };
 
 const { width } = Dimensions.get('window');
@@ -44,16 +45,16 @@ const positionCoordinates: {
     ST2: { top: '25%', left: '62%' },
   },
   '4-3-3': {
-    GK: { top: '95%', left: '49%' },
+    GK: { top: '95%', left: '47.5%' },
     LB: { top: '75%', left: '10%' },
     CB1: { top: '75%', left: '35%' },
     CB2: { top: '75%', left: '60%' },
     RB: { top: '75%', left: '85%' },
-    CM1: { top: '50%', left: '27%' },
-    CM2: { top: '50%', left: '49%' },
+    CM1: { top: '50%', left: '23.5%' },
+    CM2: { top: '50%', left: '47.5%' },
     CM3: { top: '50%', left: '71%' },
-    LW: { top: '25%', left: '20%' },
-    ST: { top: '20%', left: '49%' },
+    LW: { top: '25%', left: '17%' },
+    ST: { top: '20%', left: '47.5%' },
     RW: { top: '25%', left: '80%' },
   },
 };
@@ -72,6 +73,7 @@ const TacticalBoard: React.FC<Props> = ({
   onUnassign,
   onBenchSlotTap,
   onPlayerTap,
+  playersWithStats = new Set(),
 }) => {
   const coords = positionCoordinates[formation];
 
@@ -129,6 +131,7 @@ const TacticalBoard: React.FC<Props> = ({
                   player={player}
                   onPress={() => onPlayerTap(player)}
                   onLongPress={() => onUnassign(pos, player.id)}
+                  hasStatsSubmitted={playersWithStats.has(player.id)}
                 />
               ) : (
                 <TouchableOpacity
@@ -151,6 +154,7 @@ const TacticalBoard: React.FC<Props> = ({
         players={players}
         onAssign={onBenchSlotTap}
         onRemove={onUnassign}
+        playersWithStats={playersWithStats}
       />
     </View>
   );
