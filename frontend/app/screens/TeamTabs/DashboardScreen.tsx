@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Alert, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import RequestCard from '../../../components/RequestCard'; // Component for join requests
 import TopPerformerCard from '../../../components/TopPerformerCard'; // Component for top performers
@@ -216,7 +217,7 @@ export default function DashboardScreen() {
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>Team Dashboard</Text>
-        <Text style={styles.subtitle}>Manage your team operations</Text>
+        <Text style={styles.subtitle}>View upcoming matches and recent performance highlights</Text>
       </View>
 
       {/* Section: Upcoming Match */}
@@ -267,7 +268,10 @@ export default function DashboardScreen() {
 
             {/* Top Performers */}
             <View style={styles.topPerformersContainer}>
-              <Text style={styles.subSectionTitle}>Top Performers</Text>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons name="trophy" size={24} color="#1a4d3a" style={styles.trophyIcon} />
+                <Text style={styles.subSectionTitle}>Top Performers</Text>
+              </View>
               
               <View style={styles.performersGrid}>
                 <TopPerformerCard
@@ -328,33 +332,7 @@ export default function DashboardScreen() {
         )}
       </View>
 
-      {/* Section: Pending Requests (Coach only) */}
-      {user?.role === 'coach' && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pending Requests</Text>
-          {requests.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No pending requests</Text>
-              <Text style={styles.emptySubtext}>New join requests will appear here</Text>
-            </View>
-          ) : (
-            <View style={styles.requestsList}>
-              {requests.map((req) => (
-                <View key={req.id} style={styles.requestWrapper}>
-                  <RequestCard
-                    id={req.id}
-                    userName={req.user_name || 'Unknown'}
-                    role={req.role || ''}
-                    status={req.status}
-                    onApprove={() => handleApprove(req.id, req.role)}
-                    onReject={() => handleReject(req.id, req.role)}
-                  />
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-      )}
+      
 
       {/* Future sections here: Tactical Ratings, Top Performers, etc. */}
     </ScrollView>
@@ -495,6 +473,16 @@ const styles = StyleSheet.create({
     color: '#1a4d3a',
     marginBottom: 16,
     letterSpacing: -0.2,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  trophyIcon: {
+    right: -165,
+    top: -8, // Align icon vertically with text
   },
   performersGrid: {
     flexDirection: 'row',

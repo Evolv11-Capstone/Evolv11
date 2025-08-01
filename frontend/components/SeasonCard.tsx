@@ -31,7 +31,6 @@ interface SeasonCardProps {
   onCreateMatch: (season: Season) => void;
   onNavigateToMatch: (matchId: number | string) => void;
   onEditMatch: (match: Match) => void;
-  onEditSeason: (season: Season) => void;
   onMatchUpdated: () => void;
   onSeasonUpdated: () => void;
 }
@@ -44,7 +43,6 @@ const SeasonCard = ({
   onCreateMatch,
   onNavigateToMatch,
   onEditMatch,
-  onEditSeason,
   onMatchUpdated,
   onSeasonUpdated
 }: SeasonCardProps) => {
@@ -209,17 +207,6 @@ const SeasonCard = ({
             <Text style={styles.matchCount}>
               {seasonMatches.length} match{seasonMatches.length !== 1 ? 'es' : ''}
             </Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Edit button in bottom-right */}
-        <TouchableOpacity
-          style={styles.editIconButton}
-          onPress={() => onEditSeason(season)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.editIconContainer}>
-            <Text style={styles.editIcon}>✎</Text>
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -513,39 +500,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 0,
     position: 'relative',
-  },
-
-  editIconButton: {
-    position: 'absolute',
-    bottom: 30,
-    right: 260,
-    zIndex: 10,
-  },
-
-  editIconContainer: {
-    width: 30,
-    height: 30,
-    backgroundColor: '#d4b896',
-    borderWidth: 2,
-    borderColor: '#d4b896',
-    borderRadius: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-
-    editIcon: {
-    fontSize: 20,
-    color: '#ffffff',
-    fontWeight: '900',
-    lineHeight: 25,
   },
 
   // Delete confirmation modal styles

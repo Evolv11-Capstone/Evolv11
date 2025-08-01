@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   createDrawerNavigator,
   DrawerContentScrollView,
@@ -14,9 +14,16 @@ import {
 } from 'react-native';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Menu, ArrowLeft } from 'lucide-react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useActiveTeam } from '../contexts/ActiveTeamContext';
 import { useUser } from '../contexts/UserContext';
+
+// Import team request adapters
+import {
+  listPlayerTeamRequests,
+  listCoachTeamRequests,
+} from '../../adapters/teamRequestAdapters';
 
 import DashboardScreen from '../screens/TeamTabs/DashboardScreen';
 import PlayersScreen from '../screens/TeamTabs/PlayersScreen';
@@ -47,6 +54,7 @@ export default function TeamTabsNavigator() {
       screenOptions={{
         drawerType: 'slide',
         headerLeft: () => <HamburgerButton />,
+        headerRight: () => <NotificationsButton />,
         headerStyle: { 
           backgroundColor: '#f5f3f0', 
           elevation: 0, 
@@ -93,6 +101,63 @@ function HamburgerButton() {
       onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
     >
       <Menu size={24} color="#1a4d3a" />
+    </TouchableOpacity>
+  );
+}
+
+// 🔔 Notifications button
+function NotificationsButton() {
+  const navigation = useNavigation();
+  const { user } = useUser();
+  const { activeTeamId } = useActiveTeam();
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  // Fetch pending requests count
+  useEffect(() => {
+    const fetchPendingRequestsCount = async () => {
+      if (!user || !activeTeamId || user.role !== 'coach') {
+        setPendingRequestsCount(0);
+        return;
+      }
+
+      try {
+        const players = await listPlayerTeamRequests();
+        const coaches = await listCoachTeamRequests();
+
+        // Combine and filter only relevant requests for this team that are pending
+        const relevantRequests = [...players, ...coaches].filter(
+          (req) => req.team_id === activeTeamId && req.status === 'pending'
+        );
+
+        setPendingRequestsCount(relevantRequests.length);
+      } catch (error) {
+        console.error('Error fetching pending requests count:', error);
+        setPendingRequestsCount(0);
+      }
+    };
+
+    fetchPendingRequestsCount();
+  }, [user, activeTeamId]);
+
+  // Don't show the button if user is not a coach
+  if (!user || user.role !== 'coach') {
+    return null;
+  }
+
+  return (
+    <TouchableOpacity
+      style={styles.notificationButton}
+      onPress={() => navigation.getParent()?.navigate('NotificationsScreen')}
+      accessibilityLabel="Notifications"
+      activeOpacity={0.7}
+    >
+      <MaterialCommunityIcons name="bell-outline" size={24} color="#1a4d3a" />
+      {/* Notification badge - only show if there are pending requests */}
+      {pendingRequestsCount > 0 && (
+        <View style={styles.notificationBadge}>
+          <Text style={styles.badgeText}>{pendingRequestsCount}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -152,6 +217,32 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 0, // Sharp edges
     backgroundColor: 'transparent',
+  },
+  notificationButton: {
+    marginRight: 16,
+    padding: 8,
+    borderRadius: 0, // Sharp edges
+    backgroundColor: 'transparent',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: '#ff4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   drawerContainer: {
     backgroundColor: '#f5f3f0',

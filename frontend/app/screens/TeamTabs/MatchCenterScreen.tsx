@@ -10,17 +10,24 @@ import {
   SafeAreaView,
   StatusBar,
   Modal,
+  TextInput,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useUser } from '../../contexts/UserContext';
 import { useActiveTeam } from '../../contexts/ActiveTeamContext';
 import { getTeamSeasons, Season } from '../../../adapters/seasonAdapters';
-import { getMatchesForTeam } from '../../../adapters/matchAdapters';
+import { getMatchesForTeam, updateMatch } from '../../../adapters/matchAdapters';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 // Import the new modular components
 import SeasonForm from '../../../components/SeasonForm';
 import MatchForm from '../../../components/MatchForm';
 import SeasonCard from '../../../components/SeasonCard';
+import UpdateMatchForm from '../../../components/UpdateMatchForm';
 
 type Match = {
   id: number | string;
@@ -55,6 +62,7 @@ const MatchCenterScreen = ({ navigation }: MatchCenterScreenProps) => {
 
   // For managing matches and edits
   const [editingMatch, setEditingMatch] = useState<any>(null);
+  const [isUpdateFormVisible, setIsUpdateFormVisible] = useState(false);
 
   useEffect(() => {
     const initializeScreen = async () => {
@@ -153,12 +161,17 @@ const MatchCenterScreen = ({ navigation }: MatchCenterScreenProps) => {
 
   const handleMatchEdit = (match: any) => {
     setEditingMatch(match);
-    // Handle navigation or edit modal opening
+    setIsUpdateFormVisible(true);
   };
 
   const handleSeasonEdit = (season: Season) => {
     // TODO: Implement season edit modal or navigation
     Alert.alert('Edit Season', `Edit functionality for "${season.name}" will be implemented soon.`);
+  };
+
+  const closeEditModal = () => {
+    setIsUpdateFormVisible(false);
+    setEditingMatch(null);
   };
 
   const handleNavigateToMatch = (matchId: number | string) => {
@@ -181,7 +194,6 @@ const MatchCenterScreen = ({ navigation }: MatchCenterScreenProps) => {
         onCreateMatch={handleCreateMatchForSeason}
         onNavigateToMatch={handleNavigateToMatch}
         onEditMatch={handleMatchEdit}
-        onEditSeason={handleSeasonEdit}
         onMatchUpdated={handleSeasonUpdated}
         onSeasonUpdated={handleSeasonUpdated}
       />
@@ -214,6 +226,12 @@ const MatchCenterScreen = ({ navigation }: MatchCenterScreenProps) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a4d3a" />
+      
+      {/* Header Section */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Match Center</Text>
+        <Text style={styles.subtitle}>Organize seasons, schedule matches, and track your team's progress</Text>
+      </View>
       
       {/* Seasons List */}
       <View style={styles.listContainer}>
@@ -270,6 +288,15 @@ const MatchCenterScreen = ({ navigation }: MatchCenterScreenProps) => {
           activeTeamId={activeTeamId}
         />
       )}
+
+      {/* Update Match Form Component */}
+      <UpdateMatchForm
+        visible={isUpdateFormVisible}
+        match={editingMatch}
+        onClose={closeEditModal}
+        onMatchUpdated={handleSeasonUpdated}
+      />
+
     </SafeAreaView>
   );
 };
@@ -278,6 +305,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f3f0',
+  },
+  header: {
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    alignItems: 'flex-start',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#1a4d3a',
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#6b7280',
+    lineHeight: 22,
   },
   centerContainer: {
     flex: 1,
@@ -379,6 +425,167 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  
+  // Edit modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  editModalContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 0,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    borderLeftWidth: 4,
+    borderLeftColor: '#1a4d3a',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  editModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#d4b896',
+    backgroundColor: '#f5f3f0',
+  },
+  editModalCloseText: {
+    color: '#1a4d3a',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  editModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a4d3a',
+    letterSpacing: -0.3,
+  },
+  editModalSpacer: {
+    width: 20,
+  },
+  editModalBody: {
+    flex: 1,
+  },
+  editFormContainer: {
+    padding: 20,
+  },
+  editInputGroup: {
+    marginBottom: 16,
+  },
+  editInputGroupHalf: {
+    flex: 1,
+    marginHorizontal: 6,
+  },
+  editRowContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    marginHorizontal: -6,
+  },
+  editLabel: {
+    color: '#1a4d3a',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  editInput: {
+    borderWidth: 1,
+    borderColor: '#d4b896',
+    backgroundColor: '#ffffff',
+    padding: 12,
+    borderRadius: 0,
+    fontSize: 16,
+    color: '#1a4d3a',
+    fontWeight: '500',
+  },
+  editInputHalf: {
+    flex: 1,
+  },
+  editDateInput: {
+    borderWidth: 1,
+    borderColor: '#d4b896',
+    backgroundColor: '#ffffff',
+    padding: 12,
+    minHeight: 44,
+    justifyContent: 'center',
+    borderRadius: 0,
+  },
+  editDateText: {
+    color: '#1a4d3a',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  editUpdateButton: {
+    backgroundColor: '#1a4d3a',
+    borderRadius: 0,
+    paddingVertical: 14,
+    marginTop: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  editUpdateButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 16,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+
+  // Date picker modal styles
+  datePickerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerContainer: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    paddingBottom: 20,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#d4b896',
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a4d3a',
+    letterSpacing: -0.3,
+  },
+  datePickerButton: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a4d3a',
+  },
+  datePicker: {
+    backgroundColor: '#ffffff',
   },
 });
 

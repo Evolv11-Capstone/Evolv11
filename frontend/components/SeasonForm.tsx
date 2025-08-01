@@ -138,6 +138,12 @@ const SeasonForm = ({ activeTeamId, onSeasonCreated }: SeasonFormProps) => {
     <View style={styles.formContainer}>
       <Text style={styles.formTitle}>Create New Season</Text>
       
+      <View style={styles.warningContainer}>
+        <Text style={styles.warningText}>
+          ⚠️ Important: Please ensure the start and end dates are correct. Season dates cannot be changed once the season is created.
+        </Text>
+      </View>
+      
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Season Name</Text>
         <TextInput
@@ -312,6 +318,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 12,
     letterSpacing: -0.3,
+  },
+
+  warningContainer: {
+    backgroundColor: '#fff3cd',
+    borderWidth: 1,
+    borderColor: '#ffeaa7',
+    borderRadius: 0,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#fdcb6e',
+  },
+
+  warningText: {
+    color: '#856404',
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    textAlign: 'center',
   },
 
   inputGroup: {

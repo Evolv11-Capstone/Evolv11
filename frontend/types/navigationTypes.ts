@@ -18,6 +18,7 @@ export type RootStackParamList = {
   Register: undefined;            // Optional direct access to Register screen
   PlayerDetail: { playerId: number }; // Screen to view player details
   MatchDetailScreen: { matchId: number }; // Screen to view match details
+  NotificationsScreen: undefined; // Screen to view notifications
 };
 
 export type PostAuthTabsParamList = {

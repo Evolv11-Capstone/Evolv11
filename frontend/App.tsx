@@ -17,6 +17,7 @@ import TeamTabsNavigator from './app/navigation/TeamTabsNavigator';
 // Extra screens outside of tabs
 import PlayerDetailScreen from './app/screens/TeamTabs/PlayerDetailScreen'; 
 import MatchDetailScreen from './app/screens/TeamTabs/MatchDetailScreen'; 
+import NotificationsScreen from './app/screens/TeamTabs/NotificationsScreen'; 
 
 // Navigation types
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -175,6 +176,62 @@ function Navigation() {
                       textTransform: 'uppercase',
                     }}>
                       TEAM TABS
+                    </Text>
+                  </TouchableOpacity>
+                ),
+                headerTintColor: '#1a4d3a',
+                headerBackTitle: '',
+                headerShadowVisible: false,
+              })}
+            />
+            <RootStack.Screen
+              name="NotificationsScreen"
+              component={NotificationsScreen}
+              options={({ navigation }) => ({ 
+                headerShown: true,
+                title: 'NOTIFICATIONS',
+                headerStyle: {
+                  backgroundColor: '#f5f3f0',
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#d4b896',
+                  height: 100,
+                },
+                headerTitleStyle: {
+                  fontSize: 24,
+                  fontWeight: '900',
+                  color: '#1a4d3a',
+                },
+                headerTitleAlign: 'left',
+                headerLeft: () => (
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginLeft: 16,
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      backgroundColor: '#ffffff',
+                      borderWidth: 1,
+                      borderColor: '#d4b896',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 3,
+                      elevation: 2,
+                    }}
+                    onPress={() => navigation.goBack()}
+                    activeOpacity={0.7}
+                  >
+                    <ArrowLeft size={18} color="#1a4d3a" strokeWidth={2} />
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: '900',
+                      letterSpacing: 0.5,
+                      color: '#1a4d3a',
+                      marginLeft: 8,
+                      textTransform: 'uppercase',
+                    }}>
+                      DASHBOARD
                     </Text>
                   </TouchableOpacity>
                 ),

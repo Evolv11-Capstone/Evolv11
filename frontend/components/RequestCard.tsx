@@ -43,10 +43,10 @@ export default function RequestCard({
       {status === 'pending' && (
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.approveButton} onPress={onApprove} activeOpacity={0.85}>
-            <Text style={styles.buttonText}>Approve</Text>
+            <Text style={[styles.buttonText, { color: '#ffffff' }]}>Approve</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.rejectButton} onPress={onReject} activeOpacity={0.85}>
-            <Text style={styles.buttonText}>Reject</Text>
+            <Text style={[styles.buttonText, { color: '#ff4444' }]}>Reject</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -54,87 +54,93 @@ export default function RequestCard({
   );
 }
 
-// Styling
+// Styling - Evolv11 Brand Colors & Nike-inspired Design
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    padding: 18,
-    borderRadius: 14,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    backgroundColor: '#ffffff',
+    padding: 24,
+    borderRadius: 0, // Sharp edges for Nike-inspired design
+    marginBottom: 16,
+    shadowColor: '#1a4d3a',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1a4d3a',
     width: '100%',
-    maxWidth: 420,
-    alignSelf: 'center',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 12,
     justifyContent: 'space-between',
   },
   userName: {
     fontWeight: '700',
-    fontSize: 17,
-    color: '#111',
+    fontSize: 18,
+    color: '#1a4d3a',
     flex: 1,
+    letterSpacing: -0.3,
   },
   roleBadge: {
-    backgroundColor: '#f4f4f4',
-    color: '#2d662d',
+    backgroundColor: '#f5f3f0',
+    color: '#1a4d3a',
     fontWeight: '700',
-    fontSize: 13,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    marginLeft: 10,
+    fontSize: 12,
+    borderRadius: 0, // Sharp edges
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginLeft: 12,
     overflow: 'hidden',
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    borderWidth: 1,
+    borderColor: '#d4b896',
   },
   statusText: {
-    fontStyle: 'italic',
-    fontSize: 15,
-    marginBottom: 12,
-    fontWeight: '600',
+    fontSize: 16,
+    marginBottom: 20,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 10,
+    gap: 12,
   },
   approveButton: {
-    backgroundColor: '#2d662d',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
+    backgroundColor: '#1a4d3a',
+    borderRadius: 0, // Sharp edges
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     alignItems: 'center',
-    marginRight: 6,
-    shadowColor: '#2d662d',
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+    shadowColor: '#1a4d3a',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+    borderTopWidth: 2,
+    borderTopColor: '#76c893',
   },
   rejectButton: {
-    backgroundColor: '#b00020',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 0, // Sharp edges
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     alignItems: 'center',
-    shadowColor: '#b00020',
+    shadowColor: '#000',
     shadowOpacity: 0.08,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+    borderWidth: 2,
+    borderColor: '#ff4444',
   },
   buttonText: {
-    color: '#fff',
     fontWeight: '700',
-    fontSize: 15,
-    letterSpacing: 0.2,
+    fontSize: 14,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
 });

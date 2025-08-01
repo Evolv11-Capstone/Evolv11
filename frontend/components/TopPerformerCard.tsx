@@ -87,9 +87,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   playerImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 30,
     borderWidth: 2,
     borderColor: '#1a4d3a',
   },

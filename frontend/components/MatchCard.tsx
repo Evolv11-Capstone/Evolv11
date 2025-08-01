@@ -57,6 +57,14 @@ const MatchCard = ({ match, onNavigateToDetail, onEdit, onMatchUpdated }: MatchC
 
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: (evt, gestureState) => {
+      // Don't allow swipe if touching near the edit button (bottom-right corner)
+      const { locationX, locationY } = evt.nativeEvent;
+      const isNearEditButton = locationX > 300 && locationY > 80; // Rough estimation of edit button area
+      
+      if (isNearEditButton) {
+        return false; // Don't capture the gesture if near edit button
+      }
+      
       return Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dy) < 50;
     },
     onPanResponderGrant: () => {
@@ -149,7 +157,11 @@ const MatchCard = ({ match, onNavigateToDetail, onEdit, onMatchUpdated }: MatchC
         {/* Edit pencil icon in bottom-right */}
         <TouchableOpacity
           style={styles.editIconButton}
-          onPress={() => onEdit(match)}
+          onPress={(e) => {
+            e.stopPropagation();
+            console.log('Edit button pressed for match:', match.opponent);
+            onEdit(match);
+          }}
           activeOpacity={0.7}
         >
           <View style={styles.editIconContainer}>
@@ -221,36 +233,36 @@ const styles = StyleSheet.create({
 
   editIconButton: {
     position: 'absolute',
-    bottom: 30,
-    right: 260,
-    zIndex: 10,
-    
+    bottom: 8,
+    right: 8,
+    zIndex: 999, // Higher z-index to ensure it's above other elements
+    elevation: 10, // For Android
   },
 
   editIconContainer: {
-    width: 30,
-    height: 30,
-    backgroundColor: '#d4b896',
+    width: 36,
+    height: 36,
+    backgroundColor: '#1a4d3a',
     borderWidth: 2,
-    borderColor: '#d4b896',
+    borderColor: '#1a4d3a',
     borderRadius: 0,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 8,
   },
 
   editIcon: {
-    fontSize: 20,
+    fontSize: 16,
     color: '#ffffff',
     fontWeight: '900',
-    lineHeight: 25,
+    lineHeight: 20,
   },
 
   matchCardRow: {
