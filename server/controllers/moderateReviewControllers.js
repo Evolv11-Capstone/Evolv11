@@ -356,9 +356,52 @@ const getPlayerMatchStats = async (req, res) => {
   }
 };
 
+/**
+ * Get all player reviews for a specific match
+ * GET /api/reviews/match/:matchId
+ */
+const getMatchReviews = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+
+    if (!matchId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Match ID is required' 
+      });
+    }
+
+    // Get all reviews for this match with player information
+    const matchReviews = await knex('moderate_reviews')
+      .join('players', 'moderate_reviews.player_id', 'players.id')
+      .join('users', 'players.user_id', 'users.id')
+      .where('moderate_reviews.match_id', matchId)
+      .select(
+        'moderate_reviews.*',
+        'users.name as player_name',
+        'users.image_url as player_image'
+      );
+
+    res.status(200).json({
+      success: true,
+      data: matchReviews,
+      count: matchReviews.length
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching match reviews:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch match reviews',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   submitPlayerMatchStats,
   getPlayerGrowthHistory,
   getPlayerMatchStats,
+  getMatchReviews,
   calculateAttributeUpdates // Export for testing
 };

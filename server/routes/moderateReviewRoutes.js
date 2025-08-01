@@ -4,7 +4,8 @@ const router = express.Router();
 const {
   submitPlayerMatchStats,
   getPlayerGrowthHistory,
-  getPlayerMatchStats
+  getPlayerMatchStats,
+  getMatchReviews
 } = require('../controllers/ModerateReviewControllers');
 
 // Submit or update player match stats
@@ -18,5 +19,9 @@ router.get('/player/:playerId/growth', getPlayerGrowthHistory);
 // Get specific match stats for a player
 // GET /api/reviews/player/:playerId/match/:matchId
 router.get('/player/:playerId/match/:matchId', getPlayerMatchStats);
+
+// Get all player reviews for a specific match
+// GET /api/reviews/match/:matchId
+router.get('/match/:matchId', getMatchReviews);
 
 module.exports = router;
