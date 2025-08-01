@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import type { TeamPlayer } from '../types/playerTypes';
 import { 
@@ -102,6 +103,31 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   const handleDecrement = (key: keyof PlayerMatchStats) =>
     setStats((prev) => ({ ...prev, [key]: Math.max(0, prev[key] - 1) }));
 
+  const handleNumericInput = (key: keyof PlayerMatchStats, value: string) => {
+    // Allow empty string while user is typing
+    if (value === '') {
+      setStats((prev) => ({ ...prev, [key]: 0 }));
+      return;
+    }
+    
+    const numValue = parseInt(value, 10);
+    
+    // If not a valid number, ignore the input
+    if (isNaN(numValue)) {
+      return;
+    }
+    
+    // Validate ranges
+    let validatedValue = numValue;
+    if (key === 'minutes_played') {
+      validatedValue = Math.max(0, Math.min(90, numValue));
+    } else if (key === 'coach_rating') {
+      validatedValue = Math.max(0, Math.min(100, numValue));
+    }
+    
+    setStats((prev) => ({ ...prev, [key]: validatedValue }));
+  };
+
   const handleSave = async () => {
     if (!player?.id || !matchId) {
       Alert.alert('Error', 'Missing player or match information');
@@ -149,15 +175,15 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
     }
   };
 
-  const fields: { key: keyof PlayerMatchStats; label: string; condition?: boolean }[] = [
-    { key: 'goals', label: 'Goals' },
-    { key: 'assists', label: 'Assists' },
-    { key: 'saves', label: 'Saves', condition: position === 'GK' },
-    { key: 'tackles', label: 'Tackles' },
-    { key: 'interceptions', label: 'Interceptions' },
-    { key: 'chances_created', label: 'Chances Created' },
-    { key: 'minutes_played', label: 'Minutes Played' },
-    { key: 'coach_rating', label: 'Coach Rating' },
+  const fields: { key: keyof PlayerMatchStats; label: string; condition?: boolean; section?: 'stats' | 'manual' }[] = [
+    { key: 'goals', label: 'Goals', section: 'stats' },
+    { key: 'assists', label: 'Assists', section: 'stats' },
+    { key: 'saves', label: 'Saves', condition: position === 'GK', section: 'stats' },
+    { key: 'tackles', label: 'Tackles', section: 'stats' },
+    { key: 'interceptions', label: 'Interceptions', section: 'stats' },
+    { key: 'chances_created', label: 'Chances Created', section: 'stats' },
+    { key: 'minutes_played', label: 'Minutes Played', section: 'manual' },
+    { key: 'coach_rating', label: 'Coach Rating', section: 'manual' },
   ];
 
   return (
@@ -175,8 +201,10 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
             </View>
           ) : (
             <ScrollView>
-              {fields.map(({ key, label, condition }) =>
-                condition === false ? null : (
+              {/* Toggle-based Stats Section */}
+              {fields
+                .filter(({ condition, section }) => condition !== false && section === 'stats')
+                .map(({ key, label }) => (
                   <View style={styles.row} key={key}>
                     <Text style={styles.label}>{label}</Text>
                     <View style={styles.controls}>
@@ -189,8 +217,37 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
                       </TouchableOpacity>
                     </View>
                   </View>
-                )
-              )}
+                ))}
+
+              {/* Section Divider */}
+              <View style={styles.sectionDivider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.sectionLabel}>Coach Evaluation</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Manual Input Section */}
+              {fields
+                .filter(({ condition, section }) => condition !== false && section === 'manual')
+                .map(({ key, label }) => (
+                  <View style={styles.row} key={key}>
+                    <Text style={styles.label}>{label}</Text>
+                    <View style={styles.numericInputContainer}>
+                      <TextInput
+                        style={styles.numericInput}
+                        value={stats[key].toString()}
+                        onChangeText={(value) => handleNumericInput(key, value)}
+                        keyboardType="numeric"
+                        placeholder={key === 'minutes_played' ? "0-90" : "0-100"}
+                        placeholderTextColor="#999"
+                        maxLength={key === 'minutes_played' ? 2 : 3}
+                      />
+                      <Text style={styles.inputHint}>
+                        {key === 'minutes_played' ? 'Max: 90' : 'Max: 100'}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
             </ScrollView>
           )}
 
@@ -269,6 +326,52 @@ const styles = StyleSheet.create({
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  numericInputContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  numericInput: {
+    borderWidth: 1,
+    borderColor: '#d4b896',
+    borderRadius: 0, // Sharp edges
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 60,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a4d3a',
+    backgroundColor: '#f5f3f0',
+  },
+  inputHint: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 2,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  sectionDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    marginHorizontal: -8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#d4b896',
+    opacity: 0.5,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1a4d3a',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginHorizontal: 16,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 8,
   },
   controlBtn: {
     fontSize: 18,

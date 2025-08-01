@@ -20,7 +20,9 @@ type Props = {
   onUnassign: (pos: string, playerId: number) => void;
   onBenchSlotTap: (slot: string) => void;
   onPlayerTap: (player: TeamPlayer) => void;
-  playersWithStats?: Set<number>; // <-- Add this to track players with submitted stats
+  playersWithStats?: Set<number>; // Track players with submitted stats
+  playerGoals?: Map<number, number>; // <-- Add this to track player goals
+  playerAssists?: Map<number, number>; // <-- Add this to track player assists
 };
 
 const { width } = Dimensions.get('window');
@@ -74,6 +76,8 @@ const TacticalBoard: React.FC<Props> = ({
   onBenchSlotTap,
   onPlayerTap,
   playersWithStats = new Set(),
+  playerGoals = new Map(),
+  playerAssists = new Map(),
 }) => {
   const coords = positionCoordinates[formation];
 
@@ -132,6 +136,8 @@ const TacticalBoard: React.FC<Props> = ({
                   onPress={() => onPlayerTap(player)}
                   onLongPress={() => onUnassign(pos, player.id)}
                   hasStatsSubmitted={playersWithStats.has(player.id)}
+                  goalsScored={playerGoals.get(player.id) || 0}
+                  assistsCount={playerAssists.get(player.id) || 0}
                 />
               ) : (
                 <TouchableOpacity
@@ -155,6 +161,8 @@ const TacticalBoard: React.FC<Props> = ({
         onAssign={onBenchSlotTap}
         onRemove={onUnassign}
         playersWithStats={playersWithStats}
+        playerGoals={playerGoals}
+        playerAssists={playerAssists}
       />
     </View>
   );
@@ -192,7 +200,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderWidth: 3,
     borderColor: '#1a4d3a',
-    overflow: 'hidden',
+    overflow: 'visible', // Allow floating elements like GoalsIcon to appear above the field
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,

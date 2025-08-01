@@ -15,19 +15,24 @@ import {
   rejectCoachTeamRequest,
 } from '../../../adapters/teamRequestAdapters';
 
+// Import match adapters for upcoming matches
+import { getMatchesForTeam } from '../../../adapters/matchAdapters';
+import { Match } from '../../../types/matchTypes';
+
 export default function DashboardScreen() {
   const { user } = useUser(); // Get user from global context
   const { activeTeamId } = useActiveTeam(); // Get selected team ID
 
   const [requests, setRequests] = useState<any[]>([]); // Local state for requests
+  const [upcomingMatch, setUpcomingMatch] = useState<Match | null>(null); // State for upcoming match
 
-  // Fetch requests on mount if user is a coach
+  // Fetch requests and upcoming match on mount
   useEffect(() => {
-    const fetchRequests = async () => {
+    const fetchDashboardData = async () => {
       if (!user || !activeTeamId) return;
 
+      // Fetch team requests (coach only)
       let fetched: any[] = [];
-
       if (user.role === 'coach') {
         const players = await listPlayerTeamRequests();
         const coaches = await listCoachTeamRequests();
@@ -35,11 +40,38 @@ export default function DashboardScreen() {
         // Combine and filter only relevant requests for this team
         fetched = [...players, ...coaches].filter((req) => req.team_id === activeTeamId);
       }
-
       setRequests(fetched);
+
+      // Fetch upcoming match for all users
+      try {
+        const [response, error] = await getMatchesForTeam(activeTeamId);
+        console.log('Matches API response:', { response, error, activeTeamId });
+        
+        if (response && !error && response.success) {
+          const matches = response.data;
+          const currentDate = new Date();
+          console.log('Current date:', currentDate);
+          console.log('All matches:', matches);
+          
+          const futureMatches = matches
+            .filter((match: Match) => {
+              const matchDate = new Date(match.match_date);
+              console.log(`Match vs ${match.opponent}: ${match.match_date} -> ${matchDate} > ${currentDate}?`, matchDate > currentDate);
+              return matchDate > currentDate;
+            })
+            .sort((a: Match, b: Match) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime());
+          
+          console.log('Future matches:', futureMatches);
+          setUpcomingMatch(futureMatches.length > 0 ? futureMatches[0] : null);
+        } else {
+          console.log('No matches or error occurred:', { response, error });
+        }
+      } catch (error) {
+        console.error('Error fetching upcoming match:', error);
+      }
     };
 
-    fetchRequests();
+    fetchDashboardData();
   }, [user, activeTeamId]);
 
   // Handle approve logic
@@ -67,6 +99,29 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Team Dashboard</Text>
         <Text style={styles.subtitle}>Manage your team operations</Text>
+      </View>
+
+      {/* Section: Upcoming Match */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Upcoming Match</Text>
+        {upcomingMatch ? (
+          <View style={styles.matchCard}>
+            <Text style={styles.matchOpponent}>{upcomingMatch.opponent}</Text>
+            <Text style={styles.matchDate}>
+              {new Date(upcomingMatch.match_date).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No upcoming matches</Text>
+            <Text style={styles.emptySubtext}>Schedule matches to see them here</Text>
+          </View>
+        )}
       </View>
 
       {/* Section: Pending Requests (Coach only) */}
@@ -190,5 +245,30 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
     overflow: 'hidden',
+  },
+  matchCard: {
+    backgroundColor: '#ffffff',
+    padding: 24,
+    borderRadius: 0,
+    shadowColor: '#1a4d3a',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1a4d3a',
+  },
+  matchOpponent: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a4d3a',
+    marginBottom: 8,
+    letterSpacing: -0.3,
+  },
+  matchDate: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#374151',
+    lineHeight: 22,
   },
 });

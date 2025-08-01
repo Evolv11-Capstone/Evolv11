@@ -33,6 +33,8 @@ type Match = {
   id: number;
   opponent: string;
   match_date: string;
+  team_score?: number | null;
+  opponent_score?: number | null;
 };
 
 const MatchDetailScreen = () => {
@@ -53,12 +55,16 @@ const MatchDetailScreen = () => {
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<TeamPlayer | null>(null);
   const [playersWithStats, setPlayersWithStats] = useState<Set<number>>(new Set());
+  const [playerGoals, setPlayerGoals] = useState<Map<number, number>>(new Map()); // <-- Add this to track goals
+  const [playerAssists, setPlayerAssists] = useState<Map<number, number>>(new Map()); // <-- Add this to track assists
   const [showUpdateStatsModal, setShowUpdateStatsModal] = useState(false);
   const [showPlayerStatsModal, setShowPlayerStatsModal] = useState(false);
 
   // Function to load which players have submitted stats for this match
   const loadPlayersWithStats = async (playersList: TeamPlayer[]) => {
     const playersWithStatsSet = new Set<number>();
+    const playerGoalsMap = new Map<number, number>();
+    const playerAssistsMap = new Map<number, number>();
     
     // Check each player to see if they have stats for this match
     await Promise.all(
@@ -67,6 +73,9 @@ const MatchDetailScreen = () => {
           const [stats, error] = await getPlayerMatchStats(player.id, matchId);
           if (stats && !error) {
             playersWithStatsSet.add(player.id);
+            // Add goals and assists count to the maps (default to 0 if no field)
+            playerGoalsMap.set(player.id, stats.goals || 0);
+            playerAssistsMap.set(player.id, stats.assists || 0);
           }
         } catch (error) {
           console.log(`No stats found for player ${player.id}:`, error);
@@ -75,6 +84,11 @@ const MatchDetailScreen = () => {
     );
     
     setPlayersWithStats(playersWithStatsSet);
+    setPlayerGoals(playerGoalsMap);
+    setPlayerAssists(playerAssistsMap);
+    console.log('🎯 MatchDetailScreen - Players with stats:', Array.from(playersWithStatsSet));
+    console.log('🎯 MatchDetailScreen - Player goals:', Array.from(playerGoalsMap.entries()));
+    console.log('🎯 MatchDetailScreen - Player assists:', Array.from(playerAssistsMap.entries()));
   };
 
   useEffect(() => {
@@ -267,6 +281,14 @@ const MatchDetailScreen = () => {
                 {match.opponent.toUpperCase()}
               </Text>
             </View>
+            
+            {/* Scoreline Display */}
+            <View style={styles.scorelineContainer}>
+              <Text style={styles.scorelineText}>
+                {match.team_score || 0} - {match.opponent_score || 0}
+              </Text>
+            </View>
+            
             <View style={styles.matchInfoContainer}>
               <Text style={styles.matchDate}>
                 {new Date(match.match_date).toLocaleDateString('en-US', {
@@ -302,6 +324,8 @@ const MatchDetailScreen = () => {
                 onBenchSlotTap={(slot) => setSelectedPosition(slot)}
                 onPlayerTap={handlePlayerTap}
                 playersWithStats={playersWithStats}
+                playerGoals={playerGoals}
+                playerAssists={playerAssists}
               />
             </View>
 
@@ -474,6 +498,32 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     letterSpacing: 1,
     textAlign: 'center',
+  },
+  scorelineContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(26, 77, 58, 0.05)',
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 77, 58, 0.1)',
+  },
+  scorelineText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1a4d3a',
+    textAlign: 'center',
+    letterSpacing: -0.3,
+    textTransform: 'uppercase',
+  },
+  scorelinePlaceholder: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+    fontStyle: 'italic',
   },
   title: {
     fontSize: 28,

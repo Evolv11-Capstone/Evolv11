@@ -3,17 +3,30 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import countries from 'i18n-iso-countries';
 import type { TeamPlayer } from '../types/playerTypes';
+import GoalsIcon from './GoalsIcon';
+import AssistIcon from './AssistIcon';
 
 countries.registerLocale(require('i18n-iso-countries/langs/en.json'));
 
 type Props = {
   player: TeamPlayer;
   onPress: () => void;
-  onLongPress?: () => void; // <-- Add this line
-  hasStatsSubmitted?: boolean; // <-- Add this line for checkmark display
+  onLongPress?: () => void;
+  hasStatsSubmitted?: boolean;
+  goalsScored?: number; // <-- Add this for goal count display
+  assistsCount?: number; // <-- Add this for assist count display
 };
 
-const MiniPlayerCard: React.FC<Props> = ({ player, onPress, onLongPress, hasStatsSubmitted = false }) => {
+const MiniPlayerCard: React.FC<Props> = ({ 
+  player, 
+  onPress, 
+  onLongPress, 
+  hasStatsSubmitted = false, 
+  goalsScored = 0,
+  assistsCount = 0
+}) => {
+  console.log('⚽ MiniPlayerCard:', player.name, { goalsScored, hasStatsSubmitted });
+  
   const {
     name,
     nationality,
@@ -42,6 +55,20 @@ const MiniPlayerCard: React.FC<Props> = ({ player, onPress, onLongPress, hasStat
       <View style={styles.ratingContainer}>
         <Text style={styles.ratingText}>{overall_rating ?? 0}</Text>
       </View>
+
+      {/* Goals Icon (floating above card if player scored) */}
+      {goalsScored > 0 && (
+        <View style={styles.goalsContainer}>
+          <GoalsIcon goalCount={goalsScored} size={18} />
+        </View>
+      )}
+
+      {/* Assists Icon (floating above card if player assisted) */}
+      {assistsCount > 0 && (
+        <View style={styles.assistsContainer}>
+          <AssistIcon assistCount={assistsCount} size={18} />
+        </View>
+      )}
 
       {/* Stats Submitted Checkmark */}
       {hasStatsSubmitted && (
@@ -100,6 +127,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
     position: 'relative',
+    overflow: 'visible', // Allow floating elements to extend beyond card
   },
   ratingContainer: {
     position: 'absolute',
@@ -140,6 +168,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 3,
+  },
+  goalsContainer: {
+    position: 'absolute',
+    top: -8, // Position it to float above the card
+    left: 32, // Position next to rating container with better spacing
+    zIndex: 15, // Ensure it appears above the card and other elements
+    // Allow the icon to extend beyond card boundaries
+    overflow: 'visible',
+  },
+  assistsContainer: {
+    position: 'absolute',
+    top: -8, // Position it to float above the card
+    right: 32, // Position on the right side of the card
+    zIndex: 15, // Ensure it appears above the card and other elements
+    // Allow the icon to extend beyond card boundaries
+    overflow: 'visible',
   },
   checkmark: {
     fontSize: 11,
