@@ -100,10 +100,16 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   }, [visible, player?.id, matchId, initialStats, matchDuration]);
 
   const handleIncrement = (key: keyof PlayerMatchStats) =>
-    setStats((prev) => ({ ...prev, [key]: prev[key] + 1 }));
+    setStats((prev) => {
+      const currentValue = typeof prev[key] === 'number' ? prev[key] as number : 0;
+      return { ...prev, [key]: currentValue + 1 };
+    });
 
   const handleDecrement = (key: keyof PlayerMatchStats) =>
-    setStats((prev) => ({ ...prev, [key]: Math.max(0, prev[key] - 1) }));
+    setStats((prev) => {
+      const currentValue = typeof prev[key] === 'number' ? (prev[key] as number) : 0;
+      return { ...prev, [key]: Math.max(0, currentValue - 1) };
+    });
 
   const handleNumericInput = (key: keyof PlayerMatchStats, value: string) => {
     // Allow empty string while user is typing
@@ -245,7 +251,7 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
                     <View style={styles.numericInputContainer}>
                       <TextInput
                         style={styles.numericInput}
-                        value={stats[key].toString()}
+                        value={(stats[key] !== undefined ? stats[key] : 0).toString()}
                         onChangeText={(value) => handleNumericInput(key, value)}
                         keyboardType="numeric"
                         placeholder={key === 'minutes_played' ? "0-90" : "0-100"}

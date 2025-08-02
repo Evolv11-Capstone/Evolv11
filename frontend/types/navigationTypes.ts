@@ -35,5 +35,11 @@ export type TeamTabsParamList = {
   SeasonManagement: undefined;
   GrowthInsights: undefined;
   TeamAnalysis: undefined;
+  FeedbackDetail: {
+    matchId: number;
+    matchDate: string;
+    opponent: string;
+    playerId?: number; // Made optional since we can resolve from user context
+  };
 };
 

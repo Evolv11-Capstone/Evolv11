@@ -16,6 +16,8 @@ export type PlayerMatchStats = {
   chances_created: number;
   minutes_played: number;
   coach_rating: number;
+  feedback?: string;
+  ai_suggestions?: string;
 };
 
 export type PlayerStatsSubmission = PlayerMatchStats & {

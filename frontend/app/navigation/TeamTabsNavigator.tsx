@@ -30,6 +30,7 @@ import PlayersScreen from '../screens/TeamTabs/PlayersScreen';
 import MatchCenterScreen from '../screens/TeamTabs/MatchCenterScreen';
 import GrowthInsightsScreen from '../screens/TeamTabs/GrowthInsightsScreen';
 import TeamAnalysisScreen from '../screens/TeamTabs/TeamAnalysisScreen';
+import FeedbackDetailScreen from '../screens/TeamTabs/FeedbackDetailScreen';
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
@@ -43,6 +44,41 @@ function TeamStack({ component, title }: { component: React.ComponentType<any>; 
       </Stack.Navigator>
     );
   };
+}
+
+// 📈 Special stack for Growth Insights that includes the FeedbackDetail screen
+function GrowthInsightsStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="Growth Insights" 
+        component={GrowthInsightsScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="FeedbackDetail" 
+        component={FeedbackDetailScreen} 
+        options={{ 
+          headerShown: true,
+          title: 'Match Feedback',
+          headerStyle: { 
+            backgroundColor: '#f5f3f0', 
+            elevation: 0, 
+            shadowOpacity: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: '#d4b896',
+          },
+          headerTintColor: '#1a4d3a',
+          headerTitleStyle: {
+            fontWeight: '700',
+            fontSize: 20,
+            letterSpacing: -0.3,
+            color: '#1a4d3a',
+          },
+        }} 
+      />
+    </Stack.Navigator>
+  );
 }
 
 export default function TeamTabsNavigator() {
@@ -86,7 +122,7 @@ export default function TeamTabsNavigator() {
           <Drawer.Screen name="Match Center" component={TeamStack({ component: MatchCenterScreen, title: 'Match Center' })} />
         </>
       )}
-      <Drawer.Screen name="Growth Insights" component={TeamStack({ component: GrowthInsightsScreen, title: 'Growth Insights' })} />
+      <Drawer.Screen name="Growth Insights" component={GrowthInsightsStack} />
       <Drawer.Screen name="Team Analysis" component={TeamStack({ component: TeamAnalysisScreen, title: 'Team Analysis' })} />
     </Drawer.Navigator>
   );
