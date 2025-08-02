@@ -1,5 +1,6 @@
 // controllers/moderateReviewControllers.js
 const knex = require('../db/knex');
+const aiSuggestionsService = require('../services/aiSuggestions');
 
 /**
  * Calculate new player attributes based on match performance
@@ -106,7 +107,8 @@ const submitPlayerMatchStats = async (req, res) => {
       interceptions = 0,
       chances_created = 0,
       minutes_played = 0,
-      coach_rating = 50
+      coach_rating = 50,
+      feedback = null
     } = req.body;
 
     if (!player_id || !match_id) {
@@ -138,7 +140,8 @@ const submitPlayerMatchStats = async (req, res) => {
       interceptions,
       chances_created,
       minutes_played,
-      coach_rating
+      coach_rating,
+      feedback
     };
 
     const existingReview = await trx('moderate_reviews')
@@ -146,7 +149,14 @@ const submitPlayerMatchStats = async (req, res) => {
       .first();
 
     let reviewId;
+    let shouldGenerateAI = false;
+    
     if (existingReview) {
+      // Check if we should generate AI suggestions
+      shouldGenerateAI = feedback && 
+                        feedback.trim().length > 0 && 
+                        !existingReview.ai_suggestions;
+      
       // Update existing review
       await trx('moderate_reviews')
         .where({ player_id, match_id })
@@ -156,6 +166,9 @@ const submitPlayerMatchStats = async (req, res) => {
         });
       reviewId = existingReview.id;
     } else {
+      // Check if we should generate AI suggestions for new review
+      shouldGenerateAI = feedback && feedback.trim().length > 0;
+      
       // Create new review
       const [newReview] = await trx('moderate_reviews')
         .insert({
@@ -218,6 +231,42 @@ const submitPlayerMatchStats = async (req, res) => {
         });
     }
 
+    // Generate AI suggestions if feedback was provided
+    let aiSuggestions = null;
+    if (shouldGenerateAI) {
+      try {
+        console.log('🤖 Generating AI suggestions for player feedback...');
+        
+        // Get player name for personalized suggestions
+        const playerName = currentPlayer.name || `Player ${currentPlayer.id}`;
+        
+        // Generate AI suggestions
+        aiSuggestions = await aiSuggestionsService.generatePlayerSuggestions(
+          feedback,
+          matchStats,
+          playerName
+        );
+
+        if (aiSuggestions) {
+          // Update the moderate_review record with AI suggestions
+          await trx('moderate_reviews')
+            .where({ id: reviewId })
+            .update({
+              ai_suggestions: aiSuggestions,
+              updated_at: knex.fn.now()
+            });
+          
+          console.log('✅ AI suggestions generated and saved successfully');
+        } else {
+          console.log('⚠️ AI suggestions generation returned null');
+        }
+      } catch (aiError) {
+        console.error('❌ Error generating AI suggestions:', aiError.message);
+        // Don't fail the entire request if AI fails
+        // Continue with the transaction
+      }
+    }
+
     await trx.commit();
 
     res.status(200).json({
@@ -245,7 +294,9 @@ const submitPlayerMatchStats = async (req, res) => {
           physical: newAttributes.physical - currentPlayer.physical,
           coach_grade: newAttributes.coach_grade - currentPlayer.coach_grade,
           overall_rating: newAttributes.overall_rating - currentPlayer.overall_rating
-        }
+        },
+        feedback: feedback || null,
+        ai_suggestions: aiSuggestions || null
       }
     });
 
@@ -398,10 +449,35 @@ const getMatchReviews = async (req, res) => {
   }
 };
 
+/**
+ * Test AI suggestions service
+ * GET /api/reviews/test-ai
+ */
+const testAISuggestions = async (req, res) => {
+  try {
+    const result = await aiSuggestionsService.testService();
+    
+    res.status(200).json({
+      success: true,
+      message: 'AI suggestions test completed',
+      test_result: result,
+      api_available: aiSuggestionsService.isAvailable()
+    });
+  } catch (error) {
+    console.error('❌ Error testing AI suggestions service:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'AI suggestions test failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   submitPlayerMatchStats,
   getPlayerGrowthHistory,
   getPlayerMatchStats,
   getMatchReviews,
+  testAISuggestions,
   calculateAttributeUpdates // Export for testing
 };

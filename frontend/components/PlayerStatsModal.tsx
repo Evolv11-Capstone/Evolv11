@@ -54,6 +54,7 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   matchId,
 }) => {
   const [stats, setStats] = useState<PlayerMatchStats>({ ...defaultStats });
+  const [feedback, setFeedback] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false); // Track if we're updating existing stats
@@ -89,6 +90,7 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
       } else if (!visible) {
         // Reset stats when modal is closed
         setStats({ ...defaultStats });
+        setFeedback('');
         setIsUpdating(false);
         setLoading(false);
       }
@@ -140,6 +142,7 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
         player_id: player.id,
         match_id: matchId,
         ...stats,
+        feedback: feedback.trim() || undefined, // Only include feedback if provided
       };
 
       const [result, error] = await submitPlayerMatchStats(statsSubmission);
@@ -150,10 +153,17 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
 
       if (result.success) {
         const actionText = isUpdating ? 'updated' : 'saved';
+        const hasAISuggestions = result.data.ai_suggestions;
+        
+        let alertMessage = `${playerName}'s stats have been ${actionText}. Overall rating: ${result.data.previous_attributes.overall_rating} → ${result.data.new_attributes.overall_rating}`;
+        
+        if (hasAISuggestions) {
+          alertMessage += '\n\nAI suggestions have been generated based on your feedback!';
+        }
         
         Alert.alert(
           `Stats ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}!`, 
-          `${playerName}'s stats have been ${actionText}. Overall rating: ${result.data.previous_attributes.overall_rating} → ${result.data.new_attributes.overall_rating}`,
+          alertMessage,
           [
             {
               text: 'OK',
@@ -248,6 +258,36 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
                     </View>
                   </View>
                 ))}
+
+              {/* Coach Feedback Section */}
+              <View style={styles.sectionDivider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.sectionLabel}>Coach Feedback</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <View style={styles.feedbackSection}>
+                <Text style={styles.feedbackLabel}>
+                  Share your thoughts on this player's performance
+                </Text>
+                <Text style={styles.feedbackHint}>
+                  Your feedback will be enhanced with AI-generated improvement suggestions
+                </Text>
+                <TextInput
+                  style={styles.feedbackInput}
+                  value={feedback}
+                  onChangeText={setFeedback}
+                  placeholder="e.g., Great effort today but needs to work on passing accuracy and positioning..."
+                  placeholderTextColor="#999"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  maxLength={500}
+                />
+                <Text style={styles.characterCount}>
+                  {feedback.length}/500 characters
+                </Text>
+              </View>
             </ScrollView>
           )}
 
@@ -444,5 +484,50 @@ const styles = StyleSheet.create({
   saveBtnDisabled: {
     backgroundColor: '#999',
     opacity: 0.6,
+  },
+  feedbackSection: {
+    marginBottom: 16,
+  },
+  feedbackLabel: {
+    fontSize: 14,
+    color: '#1a4d3a',
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  feedbackHint: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+  feedbackInput: {
+    borderWidth: 2,
+    borderColor: '#d4b896',
+    borderRadius: 0, // Sharp edges
+    padding: 16,
+    fontSize: 16,
+    color: '#1a4d3a',
+    backgroundColor: '#f5f3f0',
+    minHeight: 100,
+    maxHeight: 150,
+    fontWeight: '500',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  characterCount: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'right',
+    marginTop: 4,
+    fontWeight: '500',
   },
 });

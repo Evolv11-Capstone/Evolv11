@@ -32,6 +32,8 @@ exports.up = function (knex) {
     table.integer("chances_created").defaultTo(0).notNullable();
     table.integer("minutes_played").defaultTo(0).notNullable(); // Total minutes played in match
     table.integer("coach_rating").defaultTo(0).notNullable(); // Manual input
+    table.text("feedback").nullable(); // Coach's feedback
+    table.text("ai_suggestions").nullable(); // AI-generated suggestions
 
     table.timestamps(true, true);
   });

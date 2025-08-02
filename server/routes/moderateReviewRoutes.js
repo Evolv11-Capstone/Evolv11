@@ -5,7 +5,8 @@ const {
   submitPlayerMatchStats,
   getPlayerGrowthHistory,
   getPlayerMatchStats,
-  getMatchReviews
+  getMatchReviews,
+  testAISuggestions
 } = require('../controllers/ModerateReviewControllers');
 
 // Submit or update player match stats
@@ -23,5 +24,9 @@ router.get('/player/:playerId/match/:matchId', getPlayerMatchStats);
 // Get all player reviews for a specific match
 // GET /api/reviews/match/:matchId
 router.get('/match/:matchId', getMatchReviews);
+
+// Test AI suggestions service
+// GET /api/reviews/test-ai
+router.get('/test-ai', testAISuggestions);
 
 module.exports = router;

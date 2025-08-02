@@ -21,6 +21,7 @@ export type PlayerMatchStats = {
 export type PlayerStatsSubmission = PlayerMatchStats & {
   player_id: number;
   match_id: number;
+  feedback?: string;
 };
 
 export type PlayerGrowthResponse = {
@@ -118,6 +119,8 @@ export type StatsSubmissionResponse = {
       coach_grade: number;
       overall_rating: number;
     };
+    feedback: string | null;
+    ai_suggestions: string | null;
   };
 };
 
