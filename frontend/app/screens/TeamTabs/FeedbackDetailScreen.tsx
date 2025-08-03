@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,11 @@ import {
   Alert,
   TextInput,
   TouchableOpacity,
+  Animated,
+  Easing,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { getPlayerMatchStats, updatePlayerReflection, type PlayerMatchStats } from '../../../adapters/moderateReviewsAdapter';
 import { getPlayerByUserAndTeam } from '../../../adapters/playerAdapters';
@@ -43,6 +47,17 @@ const FeedbackDetailScreen = () => {
   const [reflection, setReflection] = useState<string>('');
   const [reflectionSaving, setReflectionSaving] = useState(false);
   const [reflectionSaved, setReflectionSaved] = useState(false);
+
+  // Unlock animation states
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [showUnlockAnimation, setShowUnlockAnimation] = useState(false);
+
+  // Animation values
+  const lockOpacity = useRef(new Animated.Value(1)).current;
+  const unlockScale = useRef(new Animated.Value(0.8)).current;
+  const unlockOpacity = useRef(new Animated.Value(0)).current;
+  const shimmerAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const resolvePlayerId = async () => {
@@ -103,16 +118,36 @@ const FeedbackDetailScreen = () => {
         if (!stats) {
           setError('No feedback available for this match yet.');
           setLoading(false);
+          console.log('DEBUG: No stats found for player:', resolvedPlayerId, 'match:', matchId);
           return;
         }
+
+        console.log('DEBUG: Match stats loaded:', stats);
 
         setMatchStats(stats);
         
         // Use the real AI suggestions from the backend
         setAiSuggestions(stats.ai_suggestions || null);
+        console.log('DEBUG: AI suggestions:', stats.ai_suggestions);
         
         // Load existing reflection if available
-        setReflection(stats.reflection || '');
+        const existingReflection = stats.reflection || '';
+        setReflection(existingReflection);
+        console.log('DEBUG: Existing reflection:', existingReflection, 'Length:', existingReflection.length);
+        
+        // Check if reflection meets minimum requirement (50 characters)
+        if (existingReflection.length >= 50) {
+          setIsUnlocked(true);
+          // Initialize animation values to unlocked state
+          lockOpacity.setValue(1);
+          unlockScale.setValue(1);
+          console.log('DEBUG: Content unlocked - reflection meets minimum requirement');
+        } else {
+          // Initialize animation values to locked state
+          lockOpacity.setValue(0.3);
+          unlockScale.setValue(0.95);
+          console.log('DEBUG: Content locked - reflection too short');
+        }
         
       } catch (err: any) {
         console.error('Error loading match feedback:', err);
@@ -125,14 +160,76 @@ const FeedbackDetailScreen = () => {
     loadMatchFeedback();
   }, [resolvedPlayerId, matchId]);
 
+  // Start shimmer animation for anticipation
+  const startShimmerAnimation = () => {
+    shimmerAnimation.setValue(0);
+    Animated.loop(
+      Animated.timing(shimmerAnimation, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: false,
+      })
+    ).start();
+  };
+
+  // Stop shimmer and trigger unlock animation
+  const triggerUnlockAnimation = () => {
+    // Haptic feedback for satisfaction
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Stop shimmer
+    shimmerAnimation.stopAnimation();
+
+    // Fade out lock overlay
+    Animated.timing(lockOpacity, {
+      toValue: 0,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+
+    // Animate content reveal with staggered timing
+    setTimeout(() => {
+      setIsUnlocked(true);
+      
+      // Scale up and fade in animation
+      Animated.parallel([
+        Animated.timing(unlockScale, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.out(Easing.back(1.1)),
+          useNativeDriver: false,
+        }),
+        Animated.timing(lockOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: false,
+        }),
+      ]).start(() => {
+        setShowUnlockAnimation(false);
+        setIsUnlocking(false);
+      });
+    }, 300);
+  };
+
   const saveReflection = async () => {
     if (!resolvedPlayerId || !matchId) {
       Alert.alert('Error', 'Unable to save reflection at this time');
       return;
     }
 
+    const willUnlock = !isUnlocked && reflection.length >= 50;
+
     try {
       setReflectionSaving(true);
+      
+      // If this will unlock insights, show anticipation animation
+      if (willUnlock) {
+        setIsUnlocking(true);
+        setShowUnlockAnimation(true);
+        startShimmerAnimation();
+      }
+
       const [success, error] = await updatePlayerReflection(resolvedPlayerId, matchId, reflection);
       
       if (error || !success) {
@@ -141,16 +238,27 @@ const FeedbackDetailScreen = () => {
       
       setReflectionSaved(true);
       
-      // Reset saved state after 3 seconds
-      setTimeout(() => {
-        setReflectionSaved(false);
-      }, 3000);
+      // If unlocking insights, trigger unlock animation after a delay
+      if (willUnlock) {
+        setTimeout(() => {
+          triggerUnlockAnimation();
+        }, 1500); // 1.5 second anticipation
+      } else {
+        // Regular save feedback
+        setTimeout(() => {
+          setReflectionSaved(false);
+        }, 3000);
+      }
       
     } catch (err: any) {
       console.error('Error saving reflection:', err);
       Alert.alert('Error', err.message || 'Failed to save reflection');
+      setIsUnlocking(false);
+      setShowUnlockAnimation(false);
     } finally {
-      setReflectionSaving(false);
+      if (!willUnlock) {
+        setReflectionSaving(false);
+      }
     }
   };
 
@@ -164,6 +272,7 @@ const FeedbackDetailScreen = () => {
   };
 
   const parseAISuggestions = (suggestionsText: string) => {
+    console.log('DEBUG: parseAISuggestions called with:', suggestionsText);
     if (!suggestionsText) return [];
     
     const lines = suggestionsText.split('\n');
@@ -172,7 +281,43 @@ const FeedbackDetailScreen = () => {
       .map(line => line.trim().substring(1).trim())
       .slice(0, 3); // Limit to 3 suggestions
     
+    console.log('DEBUG: Parsed suggestions:', bulletPoints);
     return bulletPoints;
+  };
+
+  const renderLockedOverlay = (message: string) => (
+    <View style={styles.lockedOverlay}>
+      <View style={styles.lockedContent}>
+        <Ionicons name="lock-closed" size={24} color="#999" />
+        <Text style={styles.lockedText}>{message}</Text>
+      </View>
+    </View>
+  );
+
+  const renderShimmerOverlay = () => {
+    if (!showUnlockAnimation) return null;
+    
+    const shimmerTranslateX = shimmerAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [-100, 100],
+    });
+
+    return (
+      <View style={styles.unlockingOverlay}>
+        <Animated.View 
+          style={[
+            styles.shimmerEffect,
+            {
+              transform: [{ translateX: shimmerTranslateX }],
+            },
+          ]}
+        />
+        <View style={styles.unlockingContent}>
+          <ActivityIndicator size="large" color="#1a4d3a" />
+          <Text style={styles.unlockingText}>Processing your reflection...</Text>
+        </View>
+      </View>
+    );
   };
 
   if (loading) {
@@ -197,6 +342,8 @@ const FeedbackDetailScreen = () => {
   }
 
   const suggestions = parseAISuggestions(aiSuggestions || '');
+  console.log('DEBUG: Final suggestions for rendering:', suggestions, 'Length:', suggestions.length);
+  console.log('DEBUG: isUnlocked:', isUnlocked, 'aiSuggestions:', aiSuggestions);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -213,62 +360,114 @@ const FeedbackDetailScreen = () => {
 
       {/* Performance Summary */}
       {matchStats && (
-        <View style={styles.summaryCard}>
-          <Text style={styles.sectionTitle}>Performance Summary</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{matchStats.goals}</Text>
-              <Text style={styles.statLabel}>Goals</Text>
+        <View style={styles.sectionContainer}>
+          <Animated.View 
+            style={[
+              styles.summaryCard,
+              {
+                opacity: lockOpacity,
+                transform: [{ scale: unlockScale }],
+              },
+            ]}
+          >
+            <Text style={styles.sectionTitle}>Performance Summary</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{matchStats.goals}</Text>
+                <Text style={styles.statLabel}>Goals</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{matchStats.assists}</Text>
+                <Text style={styles.statLabel}>Assists</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{matchStats.tackles}</Text>
+                <Text style={styles.statLabel}>Tackles</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{matchStats.coach_rating}</Text>
+                <Text style={styles.statLabel}>Coach Rating</Text>
+              </View>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{matchStats.assists}</Text>
-              <Text style={styles.statLabel}>Assists</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{matchStats.tackles}</Text>
-              <Text style={styles.statLabel}>Tackles</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{matchStats.coach_rating}</Text>
-              <Text style={styles.statLabel}>Coach Rating</Text>
-            </View>
-          </View>
+          </Animated.View>
+          
+          {!isUnlocked && renderLockedOverlay("Unlock by writing your reflection")}
+          {showUnlockAnimation && renderShimmerOverlay()}
         </View>
       )}
           {/* Coach Feedback */}
       {matchStats?.feedback && (
-        <View style={styles.coachFeedbackCard}>
-          <Text style={styles.sectionTitle}>Coach's Notes</Text>
-          <Text style={styles.coachFeedbackText}>
-            {matchStats.feedback}
-          </Text>
+        <View style={styles.sectionContainer}>
+          <Animated.View 
+            style={[
+              styles.coachFeedbackCard,
+              {
+                opacity: lockOpacity,
+                transform: [{ scale: unlockScale }],
+              },
+            ]}
+          >
+            <Text style={styles.sectionTitle}>Coach's Notes</Text>
+            <Text style={styles.coachFeedbackText}>
+              {matchStats.feedback}
+            </Text>
+          </Animated.View>
+          
+          {!isUnlocked && renderLockedOverlay("Unlock by writing your reflection")}
+          {showUnlockAnimation && renderShimmerOverlay()}
         </View>
       )}
 
 
       {/* AI Suggestions */}
       {suggestions.length > 0 ? (
-        <View style={styles.feedbackCard}>
-          <Text style={styles.sectionTitle}>Growth Insights</Text>
-          <Text style={styles.feedbackIntro}>
-            Based on your performance, here are personalized suggestions to help you improve:
-          </Text>
+        <View style={styles.sectionContainer}>
+          <Animated.View 
+            style={[
+              styles.feedbackCard,
+              {
+                opacity: lockOpacity,
+                transform: [{ scale: unlockScale }],
+              },
+            ]}
+          >
+            <Text style={styles.sectionTitle}>Growth Insights</Text>
+            <Text style={styles.feedbackIntro}>
+              Based on your performance, here are personalized suggestions to help you improve:
+            </Text>
+            
+            <View style={styles.suggestionsList}>
+              {suggestions.map((suggestion, index) => (
+                <View key={index} style={styles.suggestionItem}>
+                  <View style={styles.bulletPoint} />
+                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                </View>
+              ))}
+            </View>
+          </Animated.View>
           
-          <View style={styles.suggestionsList}>
-            {suggestions.map((suggestion, index) => (
-              <View key={index} style={styles.suggestionItem}>
-                <View style={styles.bulletPoint} />
-                <Text style={styles.suggestionText}>{suggestion}</Text>
-              </View>
-            ))}
-          </View>
+          {!isUnlocked && renderLockedOverlay("Unlock by writing your reflection")}
+          {showUnlockAnimation && renderShimmerOverlay()}
         </View>
       ) : aiSuggestions === null ? (
-        <View style={styles.feedbackCard}>
-          <Text style={styles.sectionTitle}>Growth Insights</Text>
-          <Text style={styles.feedbackIntro}>
-            AI-powered insights are being generated for your performance. Check back soon for personalized suggestions!
-          </Text>
+        <View style={styles.sectionContainer}>
+          <Animated.View 
+            style={[
+              styles.feedbackCard,
+              {
+                opacity: lockOpacity,
+                transform: [{ scale: unlockScale }],
+              },
+            ]}
+          >
+            <Text style={styles.sectionTitle}>Growth Insights</Text>
+            <Text style={styles.feedbackIntro}>
+              AI-powered insights are being generated for your performance. Check back soon for personalized suggestions!
+            </Text>
+          </Animated.View>
+          
+          {!isUnlocked && renderLockedOverlay("Unlock by writing your reflection")}
+          {showUnlockAnimation && renderShimmerOverlay()}
         </View>
       ) : null}
 
@@ -598,6 +797,66 @@ const styles = StyleSheet.create({
   },
   saveButtonTextSuccess: {
     color: '#ffffff',
+  },
+  sectionContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  lockedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 0,
+    zIndex: 10,
+  },
+  lockedContent: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  lockedText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a4d3a',
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  unlockingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(26, 77, 58, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 0,
+    zIndex: 20,
+  },
+  shimmerEffect: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(212, 184, 150, 0.3)',
+  },
+  unlockingContent: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  unlockingText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginTop: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 });
 
