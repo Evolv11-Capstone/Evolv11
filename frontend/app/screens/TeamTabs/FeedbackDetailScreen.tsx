@@ -6,9 +6,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  TextInput,
+  TouchableOpacity,
 } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
-import { getPlayerMatchStats, type PlayerMatchStats } from '../../../adapters/moderateReviewsAdapter';
+import { getPlayerMatchStats, updatePlayerReflection, type PlayerMatchStats } from '../../../adapters/moderateReviewsAdapter';
 import { getPlayerByUserAndTeam } from '../../../adapters/playerAdapters';
 import { useActiveTeam } from '../../contexts/ActiveTeamContext';
 import { useUser } from '../../contexts/UserContext';
@@ -36,6 +38,11 @@ const FeedbackDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resolvedPlayerId, setResolvedPlayerId] = useState<number | null>(null);
+
+  // Reflection states
+  const [reflection, setReflection] = useState<string>('');
+  const [reflectionSaving, setReflectionSaving] = useState(false);
+  const [reflectionSaved, setReflectionSaved] = useState(false);
 
   useEffect(() => {
     const resolvePlayerId = async () => {
@@ -104,6 +111,9 @@ const FeedbackDetailScreen = () => {
         // Use the real AI suggestions from the backend
         setAiSuggestions(stats.ai_suggestions || null);
         
+        // Load existing reflection if available
+        setReflection(stats.reflection || '');
+        
       } catch (err: any) {
         console.error('Error loading match feedback:', err);
         setError(err.message || 'Failed to load match feedback');
@@ -114,6 +124,35 @@ const FeedbackDetailScreen = () => {
 
     loadMatchFeedback();
   }, [resolvedPlayerId, matchId]);
+
+  const saveReflection = async () => {
+    if (!resolvedPlayerId || !matchId) {
+      Alert.alert('Error', 'Unable to save reflection at this time');
+      return;
+    }
+
+    try {
+      setReflectionSaving(true);
+      const [success, error] = await updatePlayerReflection(resolvedPlayerId, matchId, reflection);
+      
+      if (error || !success) {
+        throw new Error(error?.message || 'Failed to save reflection');
+      }
+      
+      setReflectionSaved(true);
+      
+      // Reset saved state after 3 seconds
+      setTimeout(() => {
+        setReflectionSaved(false);
+      }, 3000);
+      
+    } catch (err: any) {
+      console.error('Error saving reflection:', err);
+      Alert.alert('Error', err.message || 'Failed to save reflection');
+    } finally {
+      setReflectionSaving(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -234,13 +273,57 @@ const FeedbackDetailScreen = () => {
       ) : null}
 
   
-      {/* Journal Note */}
-      <View style={styles.journalCard}>
-        <Text style={styles.sectionTitle}>Reflection</Text>
-        <Text style={styles.journalText}>
-          Take a moment to reflect on this match. What went well? What would you do differently next time? 
-          Use these insights to guide your training and preparation for upcoming matches.
+      {/* Personal Reflection */}
+      <View style={styles.reflectionCard}>
+        <Text style={styles.sectionTitle}>Your Reflection</Text>
+        <Text style={styles.reflectionSubtitle}>
+          This is your personal space. No one else can see this reflection.
         </Text>
+        
+        <TextInput
+          style={styles.reflectionInput}
+          multiline
+          numberOfLines={6}
+          maxLength={500}
+          placeholder="Write your thoughts about this match..."
+          placeholderTextColor="#999"
+          value={reflection}
+          onChangeText={(text) => {
+            setReflection(text);
+            if (reflectionSaved) {
+              setReflectionSaved(false);
+            }
+          }}
+          textAlignVertical="top"
+        />
+        
+        <View style={styles.reflectionFooter}>
+          <Text style={styles.characterCount}>
+            {reflection.length}/500 characters
+          </Text>
+          
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              reflectionSaving && styles.saveButtonDisabled,
+              reflectionSaved && styles.saveButtonSuccess
+            ]}
+            onPress={saveReflection}
+            disabled={reflectionSaving || reflectionSaved}
+          >
+            <Text style={[
+              styles.saveButtonText,
+              reflectionSaved && styles.saveButtonTextSuccess
+            ]}>
+              {reflectionSaving 
+                ? 'Saving...' 
+                : reflectionSaved 
+                  ? '✓ Saved' 
+                  : 'Save Reflection'
+              }
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
@@ -448,6 +531,73 @@ const styles = StyleSheet.create({
     color: '#333',
     lineHeight: 22,
     fontWeight: '500',
+  },
+  reflectionCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 0,
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#d4b896',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  reflectionSubtitle: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 16,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  reflectionInput: {
+    backgroundColor: '#f9f9f9',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 16,
+    fontSize: 14,
+    color: '#333',
+    minHeight: 120,
+    marginBottom: 12,
+    fontFamily: 'System',
+  },
+  reflectionFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  characterCount: {
+    fontSize: 12,
+    color: '#999',
+  },
+  saveButton: {
+    backgroundColor: '#1a4d3a',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 0,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#999',
+  },
+  saveButtonSuccess: {
+    backgroundColor: '#28a745',
+  },
+  saveButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  saveButtonTextSuccess: {
+    color: '#ffffff',
   },
 });
 

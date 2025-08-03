@@ -34,6 +34,7 @@ exports.up = function (knex) {
     table.integer("coach_rating").defaultTo(0).notNullable(); // Manual input
     table.text("feedback").nullable(); // Coach's feedback
     table.text("ai_suggestions").nullable(); // AI-generated suggestions
+    table.text("reflection").nullable(); // Player's self-reflection
 
     table.timestamps(true, true);
   });

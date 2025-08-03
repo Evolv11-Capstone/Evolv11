@@ -18,6 +18,7 @@ export type PlayerMatchStats = {
   coach_rating: number;
   feedback?: string;
   ai_suggestions?: string;
+  reflection?: string;
 };
 
 export type PlayerStatsSubmission = PlayerMatchStats & {
@@ -194,4 +195,36 @@ export const getMatchReviews = async (
   }
   
   return [[], null];
+};
+
+/**
+ * Update player's reflection for a specific match
+ */
+export const updatePlayerReflection = async (
+  playerId: number,
+  matchId: number,
+  reflection: string
+): Promise<[boolean, Error | null]> => {
+  const url = `${API_BASE_URL}/reviews/player/${playerId}/match/${matchId}/reflection`;
+  const body = { reflection };
+  const options = {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include' as RequestCredentials,
+    body: JSON.stringify(body),
+  };
+
+  const [response, error] = await fetchHandler<{ success: boolean; message: string }>(url, options);
+  
+  if (error) {
+    return [false, error];
+  }
+  
+  if (response?.success) {
+    return [true, null];
+  }
+  
+  return [false, new Error(response?.message || 'Failed to update reflection')];
 };

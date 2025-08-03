@@ -473,11 +473,70 @@ const testAISuggestions = async (req, res) => {
   }
 };
 
+/**
+ * Update player's reflection for a specific match
+ * PATCH /api/reviews/player/:playerId/match/:matchId/reflection
+ */
+const updatePlayerReflection = async (req, res) => {
+  try {
+    const { playerId, matchId } = req.params;
+    const { reflection } = req.body;
+
+    if (!playerId || !matchId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Player ID and Match ID are required' 
+      });
+    }
+
+    if (typeof reflection !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Reflection must be a string' 
+      });
+    }
+
+    // Check if a moderate_review record exists for this player and match
+    const existingReview = await knex('moderate_reviews')
+      .where({ player_id: playerId, match_id: matchId })
+      .first();
+
+    if (!existingReview) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No match record found for this player and match' 
+      });
+    }
+
+    // Update the reflection field
+    await knex('moderate_reviews')
+      .where({ player_id: playerId, match_id: matchId })
+      .update({ 
+        reflection: reflection.trim(),
+        updated_at: knex.fn.now()
+      });
+
+    res.status(200).json({
+      success: true,
+      message: 'Reflection updated successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Error updating player reflection:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update reflection',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   submitPlayerMatchStats,
   getPlayerGrowthHistory,
   getPlayerMatchStats,
   getMatchReviews,
   testAISuggestions,
+  updatePlayerReflection,
   calculateAttributeUpdates // Export for testing
 };
