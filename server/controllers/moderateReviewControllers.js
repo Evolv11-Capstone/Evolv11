@@ -3,9 +3,86 @@ const knex = require('../db/knex');
 const aiSuggestionsService = require('../services/aiSuggestions');
 
 /**
- * Calculate new player attributes based on match performance
- * Uses weighted formulas to update player stats based on their performance
+ * Get the baseline stats for growth calculation using player snapshots
+ * @param {Object} trx - Knex transaction object
+ * @param {number} playerId - The player ID
+ * @param {number} matchId - The current match ID
+ * @returns {Object} Baseline stats to use for growth calculation
  */
+const getBaselineStatsFromSnapshots = async (trx, playerId, matchId) => {
+  try {
+    // Get the current match date
+    const currentMatch = await trx('matches')
+      .where({ id: matchId })
+      .first();
+    
+    if (!currentMatch) {
+      throw new Error(`Match with ID ${matchId} not found`);
+    }
+
+    // Find the most recent snapshot BEFORE this match's date
+    const previousSnapshot = await trx('player_snapshots')
+      .join('matches', 'player_snapshots.match_id', 'matches.id')
+      .where('player_snapshots.player_id', playerId)
+      .whereNotNull('player_snapshots.match_id') // Use whereNotNull instead of != null
+      .where('matches.match_date', '<', currentMatch.match_date)
+      .orderBy('matches.match_date', 'desc')
+      .select('player_snapshots.*')
+      .first();
+
+    if (previousSnapshot) {
+      console.log(`📊 Using previous snapshot from match ${previousSnapshot.match_id} as baseline for player ${playerId}`);
+      return {
+        shooting: previousSnapshot.shooting,
+        passing: previousSnapshot.passing,
+        dribbling: previousSnapshot.dribbling,
+        defense: previousSnapshot.defense,
+        physical: previousSnapshot.physical,
+        coach_grade: previousSnapshot.coach_grade
+      };
+    }
+
+    // Fall back to the initial snapshot (match_id IS NULL)
+    const initialSnapshot = await trx('player_snapshots')
+      .where({ player_id: playerId, match_id: null })
+      .first();
+
+    if (initialSnapshot) {
+      console.log(`📊 Using initial snapshot as baseline for player ${playerId} (no previous matches)`);
+      return {
+        shooting: initialSnapshot.shooting,
+        passing: initialSnapshot.passing,
+        dribbling: initialSnapshot.dribbling,
+        defense: initialSnapshot.defense,
+        physical: initialSnapshot.physical,
+        coach_grade: initialSnapshot.coach_grade
+      };
+    }
+
+    // Fallback to default baseline if no snapshots exist
+    console.log(`⚠️ No snapshots found for player ${playerId}, using default baseline (all stats = 50)`);
+    return {
+      shooting: 50,
+      passing: 50,
+      dribbling: 50,
+      defense: 50,
+      physical: 50,
+      coach_grade: 50
+    };
+
+  } catch (error) {
+    console.error('Error getting baseline stats from snapshots:', error);
+    // Fallback to default baseline
+    return {
+      shooting: 50,
+      passing: 50,
+      dribbling: 50,
+      defense: 50,
+      physical: 50,
+      coach_grade: 50
+    };
+  }
+};
 const calculateAttributeUpdates = (currentStats, matchStats) => {
   const {
     goals = 0,
@@ -118,7 +195,7 @@ const submitPlayerMatchStats = async (req, res) => {
       });
     }
 
-    // Get current player stats
+    // Get current player stats for reference
     const currentPlayer = await trx('players')
       .where({ id: player_id })
       .first();
@@ -130,6 +207,9 @@ const submitPlayerMatchStats = async (req, res) => {
         message: 'Player not found' 
       });
     }
+
+    // Get baseline stats from snapshots for proper growth calculation
+    const baselineStats = await getBaselineStatsFromSnapshots(trx, player_id, match_id);
 
     // Create or update moderate_review record
     const matchStats = {
@@ -180,8 +260,8 @@ const submitPlayerMatchStats = async (req, res) => {
       reviewId = newReview.id;
     }
 
-    // Calculate new player attributes
-    const newAttributes = calculateAttributeUpdates(currentPlayer, matchStats);
+    // Calculate new player attributes using baseline stats from snapshots
+    const newAttributes = calculateAttributeUpdates(baselineStats, matchStats);
 
     // Update player attributes
     await trx('players')
@@ -277,23 +357,31 @@ const submitPlayerMatchStats = async (req, res) => {
         player_id,
         match_id,
         previous_attributes: {
-          shooting: currentPlayer.shooting,
-          passing: currentPlayer.passing,
-          dribbling: currentPlayer.dribbling,
-          defense: currentPlayer.defense,
-          physical: currentPlayer.physical,
-          coach_grade: currentPlayer.coach_grade,
-          overall_rating: currentPlayer.overall_rating
+          shooting: baselineStats.shooting,
+          passing: baselineStats.passing,
+          dribbling: baselineStats.dribbling,
+          defense: baselineStats.defense,
+          physical: baselineStats.physical,
+          coach_grade: baselineStats.coach_grade,
+          overall_rating: baselineStats.overall_rating || Math.round(
+            (baselineStats.shooting * 0.2 + baselineStats.passing * 0.2 + 
+             baselineStats.dribbling * 0.15 + baselineStats.defense * 0.2 + 
+             baselineStats.physical * 0.15 + baselineStats.coach_grade * 0.1)
+          )
         },
         new_attributes: newAttributes,
         growth: {
-          shooting: newAttributes.shooting - currentPlayer.shooting,
-          passing: newAttributes.passing - currentPlayer.passing,
-          dribbling: newAttributes.dribbling - currentPlayer.dribbling,
-          defense: newAttributes.defense - currentPlayer.defense,
-          physical: newAttributes.physical - currentPlayer.physical,
-          coach_grade: newAttributes.coach_grade - currentPlayer.coach_grade,
-          overall_rating: newAttributes.overall_rating - currentPlayer.overall_rating
+          shooting: newAttributes.shooting - baselineStats.shooting,
+          passing: newAttributes.passing - baselineStats.passing,
+          dribbling: newAttributes.dribbling - baselineStats.dribbling,
+          defense: newAttributes.defense - baselineStats.defense,
+          physical: newAttributes.physical - baselineStats.physical,
+          coach_grade: newAttributes.coach_grade - baselineStats.coach_grade,
+          overall_rating: newAttributes.overall_rating - (baselineStats.overall_rating || Math.round(
+            (baselineStats.shooting * 0.2 + baselineStats.passing * 0.2 + 
+             baselineStats.dribbling * 0.15 + baselineStats.defense * 0.2 + 
+             baselineStats.physical * 0.15 + baselineStats.coach_grade * 0.1)
+          ))
         },
         feedback: feedback || null,
         ai_suggestions: aiSuggestions || null

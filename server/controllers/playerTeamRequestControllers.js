@@ -1,6 +1,7 @@
 // Import the PlayerTeamRequest model
 const PlayerTeamRequest = require('../models/PlayerTeamRequest');
 const Player = require('../models/Player');              // Player model
+const PlayerSnapshot = require('../models/PlayerSnapshot'); // PlayerSnapshot model
 // Import the Player model for creating player cards
 const knex = require('../db/knex');
 
@@ -83,6 +84,23 @@ exports.approvePlayerRequest = async (req, res) => {
       .first();
 
     if (existingPlayer) {
+      // Check if this player already has an initial snapshot
+      try {
+        const existingSnapshot = await PlayerSnapshot.getLatestSnapshot(existingPlayer.id);
+        if (!existingSnapshot) {
+          // Create initial snapshot for existing player who doesn't have one
+          const initialSnapshot = await PlayerSnapshot.createInitialSnapshot(existingPlayer.id);
+          console.log(`Initial snapshot created for existing player ${existingPlayer.id}:`, initialSnapshot);
+          
+          return res.json({
+            message: 'Request approved — player card already exists, initial snapshot created',
+            player: existingPlayer,
+          });
+        }
+      } catch (snapshotError) {
+        console.error('Failed to create/check snapshot for existing player:', snapshotError);
+      }
+
       return res.json({
         message: 'Request approved — player card already exists',
         player: existingPlayer,
@@ -92,8 +110,17 @@ exports.approvePlayerRequest = async (req, res) => {
     // 4. Create new player card
     const [newPlayer] = await Player.create(request.user_id, request.team_id);
 
+    // 5. Create initial player snapshot
+    try {
+      const initialSnapshot = await PlayerSnapshot.createInitialSnapshot(newPlayer.id);
+      console.log(`Initial snapshot created for player ${newPlayer.id}:`, initialSnapshot);
+    } catch (snapshotError) {
+      console.error('Failed to create initial snapshot:', snapshotError);
+      // Don't fail the entire request if snapshot creation fails
+    }
+
     return res.json({
-      message: 'Request approved and player card created',
+      message: 'Request approved, player card created, and initial snapshot recorded',
       player: newPlayer,
     });
   } catch (error) {

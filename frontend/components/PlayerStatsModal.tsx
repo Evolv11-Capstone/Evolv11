@@ -70,6 +70,10 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
           if (existingStats && !error) {
             console.log('Loaded existing stats for player:', player.id, existingStats);
             setStats(existingStats);
+            // Pre-fill feedback field with existing feedback if available
+            if (existingStats.feedback) {
+              setFeedback(existingStats.feedback);
+            }
             setIsUpdating(true);
           } else if (initialStats) {
             console.log('Using initial stats provided:', initialStats);
@@ -88,7 +92,7 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
           setLoading(false);
         }
       } else if (!visible) {
-        // Reset stats when modal is closed
+        // Reset stats and feedback when modal is closed
         setStats({ ...defaultStats });
         setFeedback('');
         setIsUpdating(false);
