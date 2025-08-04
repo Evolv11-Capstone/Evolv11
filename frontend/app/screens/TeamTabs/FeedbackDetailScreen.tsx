@@ -689,6 +689,7 @@ const styles = StyleSheet.create({
     color: '#666',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    textAlign: 'center',
   },
   feedbackIntro: {
     fontSize: 14,

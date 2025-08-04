@@ -189,9 +189,11 @@ const styles = StyleSheet.create({
   positionWrapper: {
     position: 'absolute',
     top: 50,
-    right: 130,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   position: {
     fontSize: 24,
