@@ -122,7 +122,9 @@ export default function TeamTabsNavigator() {
           <Drawer.Screen name="Match Center" component={TeamStack({ component: MatchCenterScreen, title: 'Match Center' })} />
         </>
       )}
-      <Drawer.Screen name="Growth Insights" component={GrowthInsightsStack} />
+      {user?.role === 'player' && (
+        <Drawer.Screen name="Growth Insights" component={GrowthInsightsStack} />
+      )}
       <Drawer.Screen name="Team Analysis" component={TeamStack({ component: TeamAnalysisScreen, title: 'Team Analysis' })} />
     </Drawer.Navigator>
   );

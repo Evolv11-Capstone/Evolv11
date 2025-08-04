@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Alert, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, ScrollView, Alert, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 import RequestCard from '../../../components/RequestCard'; // Component for join requests
 import TopPerformerCard from '../../../components/TopPerformerCard'; // Component for top performers
 import { useUser } from '../../contexts/UserContext'; // Get current user info
 import { useActiveTeam } from '../../contexts/ActiveTeamContext'; // Get active team
+import { useDataRefresh } from '../../contexts/DataRefreshContext'; // Get refresh context
 
 // Adapters to fetch and approve/reject requests
 import {
@@ -25,17 +27,23 @@ import { Match } from '../../../types/matchTypes';
 export default function DashboardScreen() {
   const { user } = useUser(); // Get user from global context
   const { activeTeamId } = useActiveTeam(); // Get selected team ID
+  const { refreshTrigger, triggerDashboardRefresh } = useDataRefresh(); // Get refresh context
 
   const [requests, setRequests] = useState<any[]>([]); // Local state for requests
   const [upcomingMatch, setUpcomingMatch] = useState<Match | null>(null); // State for upcoming match
   const [previousMatch, setPreviousMatch] = useState<Match | null>(null); // State for previous match
   const [previousMatchReviews, setPreviousMatchReviews] = useState<MatchReview[]>([]); // State for previous match reviews
+  const [refreshing, setRefreshing] = useState(false); // Loading state for refresh
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null); // Track when data was last fetched
 
-  // Fetch requests and upcoming match on mount
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!user || !activeTeamId) return;
+  // Fetch requests and upcoming match on mount and when screen comes into focus
+  const fetchDashboardData = useCallback(async () => {
+    if (!user || !activeTeamId) return;
 
+    setRefreshing(true);
+    console.log('🔄 Dashboard: Fetching fresh data...');
+
+    try {
       // Fetch team requests (coach only)
       let fetched: any[] = [];
       if (user.role === 'coach') {
@@ -48,77 +56,89 @@ export default function DashboardScreen() {
       setRequests(fetched);
 
       // Fetch upcoming match for all users
-      try {
-        const [response, error] = await getMatchesForTeam(activeTeamId);
+      const [response, error] = await getMatchesForTeam(activeTeamId);
+      
+      if (response && !error && response.success) {
+        const matches = response.data;
+        const currentDate = new Date();
         
-        if (response && !error && response.success) {
-          const matches = response.data;
-          const currentDate = new Date();
-          
-          // Get future matches (upcoming)
-          const futureMatches = matches
-            .filter((match: Match) => new Date(match.match_date) > currentDate)
-            .sort((a: Match, b: Match) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime());
-          
-          setUpcomingMatch(futureMatches.length > 0 ? futureMatches[0] : null);
+        // Get future matches (upcoming)
+        const futureMatches = matches
+          .filter((match: Match) => new Date(match.match_date) > currentDate)
+          .sort((a: Match, b: Match) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime());
+        
+        setUpcomingMatch(futureMatches.length > 0 ? futureMatches[0] : null);
 
-          // Get past matches (previous)
-          const pastMatches = matches
-            .filter((match: Match) => new Date(match.match_date) <= currentDate)
-            .sort((a: Match, b: Match) => new Date(b.match_date).getTime() - new Date(a.match_date).getTime());
-          
-          const mostRecentMatch = pastMatches.length > 0 ? pastMatches[0] : null;
-          console.log('🏆 Previous Match Debug:', {
-            totalMatches: matches.length,
-            pastMatchesCount: pastMatches.length,
-            mostRecentMatch: mostRecentMatch,
-            currentDate: currentDate.toISOString()
+        // Get past matches (previous)
+        const pastMatches = matches
+          .filter((match: Match) => new Date(match.match_date) <= currentDate)
+          .sort((a: Match, b: Match) => new Date(b.match_date).getTime() - new Date(a.match_date).getTime());
+        
+        const mostRecentMatch = pastMatches.length > 0 ? pastMatches[0] : null;
+        console.log('🏆 Previous Match Debug:', {
+          totalMatches: matches.length,
+          pastMatchesCount: pastMatches.length,
+          mostRecentMatch: mostRecentMatch,
+          currentDate: currentDate.toISOString()
+        });
+        setPreviousMatch(mostRecentMatch);
+
+        // If we have a previous match, fetch its reviews
+        if (mostRecentMatch) {
+          console.log('🎯 Fetching reviews for match ID:', mostRecentMatch.id);
+          const [reviews, reviewsError] = await getMatchReviews(mostRecentMatch.id);
+          console.log('📊 Match Reviews Debug:', {
+            matchId: mostRecentMatch.id,
+            reviewsCount: reviews?.length,
+            reviews: reviews,
+            error: reviewsError
           });
-          setPreviousMatch(mostRecentMatch);
-
-          // If we have a previous match, fetch its reviews
-          if (mostRecentMatch) {
-            console.log('🎯 Fetching reviews for match ID:', mostRecentMatch.id);
-            try {
-              const [reviews, reviewsError] = await getMatchReviews(mostRecentMatch.id);
-              console.log('📊 Match Reviews Debug:', {
-                matchId: mostRecentMatch.id,
-                reviewsCount: reviews?.length,
-                reviews: reviews,
-                error: reviewsError
+          
+          if (reviews && !reviewsError) {
+            // Log each review to see the data structure
+            reviews.forEach((review, index) => {
+              console.log(`📋 Review ${index + 1}:`, {
+                player_name: review.player_name,
+                goals: review.goals,
+                assists: review.assists,
+                coach_rating: review.coach_rating,
+                tackles: review.tackles,
+                interceptions: review.interceptions,
+                chances_created: review.chances_created
               });
-              
-              if (reviews && !reviewsError) {
-                // Log each review to see the data structure
-                reviews.forEach((review, index) => {
-                  console.log(`📋 Review ${index + 1}:`, {
-                    player_name: review.player_name,
-                    goals: review.goals,
-                    assists: review.assists,
-                    coach_rating: review.coach_rating,
-                    tackles: review.tackles,
-                    interceptions: review.interceptions,
-                    chances_created: review.chances_created
-                  });
-                });
-                
-                setPreviousMatchReviews(reviews);
-              } else {
-                setPreviousMatchReviews([]);
-              }
-            } catch (reviewsError) {
-              console.error('Error fetching previous match reviews:', reviewsError);
-              setPreviousMatchReviews([]);
-            }
+            });
+            
+            setPreviousMatchReviews(reviews);
+          } else {
+            setPreviousMatchReviews([]);
           }
+        } else {
+          setPreviousMatchReviews([]);
         }
-      } catch (error) {
-        console.error('Error fetching matches:', error);
       }
-    };
-
-    fetchDashboardData();
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setRefreshing(false);
+      setLastUpdated(new Date());
+      console.log('✅ Dashboard: Data fetch completed');
+    }
   }, [user, activeTeamId]);
+
+  // Refresh data when screen comes into focus to capture coach updates
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboardData();
+    }, [fetchDashboardData])
+  );
+
+  // Also refresh data when refresh trigger changes (from other screens)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log('🔄 Dashboard: Refreshing due to trigger change');
+      fetchDashboardData();
+    }
+  }, [refreshTrigger, fetchDashboardData]);
 
   // Helper functions to find top performers
   const getTopPerformer = (stat: keyof MatchReview, reviews: MatchReview[]) => {
@@ -197,7 +217,12 @@ export default function DashboardScreen() {
   const handleApprove = async (id: number, role: string) => {
     const action = role === 'player' ? approvePlayerTeamRequest : approveCoachTeamRequest;
     const { success, message } = await action(id);
-    if (!success) Alert.alert('Error', message || 'Failed to approve request');
+    if (!success) {
+      Alert.alert('Error', message || 'Failed to approve request');
+    } else {
+      // Trigger refresh for this and other relevant screens
+      triggerDashboardRefresh();
+    }
     setRequests((prev) =>
       prev.map((req) => (req.id === id ? { ...req, status: 'approved' } : req))
     );
@@ -207,17 +232,38 @@ export default function DashboardScreen() {
   const handleReject = async (id: number, role: string) => {
     const action = role === 'player' ? rejectPlayerTeamRequest : rejectCoachTeamRequest;
     const { success, message } = await action(id);
-    if (!success) Alert.alert('Error', message || 'Failed to reject request');
+    if (!success) {
+      Alert.alert('Error', message || 'Failed to reject request');
+    } else {
+      // Trigger refresh for this and other relevant screens
+      triggerDashboardRefresh();
+    }
     setRequests((prev) =>
       prev.map((req) => (req.id === id ? { ...req, status: 'rejected' } : req))
     );
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      contentContainerStyle={styles.container} 
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={fetchDashboardData}
+          colors={['#1a4d3a']}
+          tintColor="#1a4d3a"
+        />
+      }
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Team Dashboard</Text>
         <Text style={styles.subtitle}>View upcoming matches and recent performance highlights</Text>
+        {lastUpdated && (
+          <Text style={styles.lastUpdated}>
+            Last updated: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+        )}
       </View>
 
       {/* Section: Upcoming Match */}
@@ -364,6 +410,13 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#6b7280',
     lineHeight: 22,
+  },
+  lastUpdated: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#9ca3af',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   section: {
     backgroundColor: '#ffffff',

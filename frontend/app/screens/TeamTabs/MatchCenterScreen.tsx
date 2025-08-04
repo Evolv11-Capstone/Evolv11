@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,8 +17,10 @@ import {
   Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect } from '@react-navigation/native';
 import { useUser } from '../../contexts/UserContext';
 import { useActiveTeam } from '../../contexts/ActiveTeamContext';
+import { useDataRefresh } from '../../contexts/DataRefreshContext';
 import { getTeamSeasons, Season } from '../../../adapters/seasonAdapters';
 import { getMatchesForTeam, updateMatch } from '../../../adapters/matchAdapters';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -49,6 +51,7 @@ type MatchCenterScreenProps = {
 const MatchCenterScreen = ({ navigation }: MatchCenterScreenProps) => {
   const { user } = useUser();
   const { activeTeamId } = useActiveTeam();
+  const { triggerDashboardRefresh } = useDataRefresh();
 
   // Main state
   const [seasonsData, setSeasonsData] = useState<SeasonWithMatches[]>([]);
@@ -76,6 +79,15 @@ const MatchCenterScreen = ({ navigation }: MatchCenterScreenProps) => {
     setExpandedSeasonId(null);
     initializeScreen();
   }, [activeTeamId]);
+
+  // Refresh data when screen comes into focus to capture coach updates
+  useFocusEffect(
+    useCallback(() => {
+      if (activeTeamId) {
+        fetchSeasonsWithMatches();
+      }
+    }, [activeTeamId])
+  );
 
   const fetchSeasonsWithMatches = async () => {
     try {
@@ -145,6 +157,8 @@ const MatchCenterScreen = ({ navigation }: MatchCenterScreenProps) => {
   const handleMatchCreated = async () => {
     // Refresh seasons list to get updated matches
     await fetchSeasonsWithMatches();
+    // Trigger dashboard refresh to show new match data
+    triggerDashboardRefresh();
     setIsMatchFormVisible(false);
     setSelectedSeasonForMatch(null);
   };
@@ -157,6 +171,8 @@ const MatchCenterScreen = ({ navigation }: MatchCenterScreenProps) => {
   const handleSeasonUpdated = async () => {
     // Refresh seasons list after updates (like match deletion)
     await fetchSeasonsWithMatches();
+    // Trigger dashboard refresh to show updated match data
+    triggerDashboardRefresh();
   };
 
   const handleMatchEdit = (match: any) => {

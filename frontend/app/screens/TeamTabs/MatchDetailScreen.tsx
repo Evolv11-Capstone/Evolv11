@@ -13,6 +13,7 @@ import {
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { useUser } from '../../contexts/UserContext';
 import { useActiveTeam } from '../../contexts/ActiveTeamContext';
+import { useDataRefresh } from '../../contexts/DataRefreshContext';
 import { getMatchById } from '../../../adapters/matchAdapters';
 import {
   createLineup,
@@ -40,6 +41,7 @@ type Match = {
 const MatchDetailScreen = () => {
   const { user } = useUser();
   const { activeTeamId, activeTeamName, setActiveTeamName } = useActiveTeam();
+  const { triggerDashboardRefresh } = useDataRefresh();
   const route = useRoute<RouteProp<{ params: { matchId: number } }, 'params'>>();
   const navigation = useNavigation();
   const { matchId } = route.params;
@@ -358,6 +360,8 @@ const MatchDetailScreen = () => {
                     }
                     // Optionally refresh all player stats to ensure consistency
                     await loadPlayersWithStats(players);
+                    // Trigger dashboard refresh to show updated data
+                    triggerDashboardRefresh();
                     // Close all modals
                     handleCloseModals();
                   }}

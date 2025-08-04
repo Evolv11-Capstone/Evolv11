@@ -8,6 +8,7 @@ import { ArrowLeft } from 'lucide-react-native';
 // Contexts
 import { UserProvider, useUser } from './app/contexts/UserContext';
 import { ActiveTeamProvider, useActiveTeam } from './app/contexts/ActiveTeamContext';
+import { DataRefreshProvider } from './app/contexts/DataRefreshContext';
 
 // Navigators
 import AuthNavigator from './app/navigation/AuthNavigator';
@@ -31,7 +32,9 @@ export default function App() {
   return (
     <UserProvider>
       <ActiveTeamProvider>
-        <Navigation />
+        <DataRefreshProvider>
+          <Navigation />
+        </DataRefreshProvider>
       </ActiveTeamProvider>
     </UserProvider>
   );
