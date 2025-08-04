@@ -18,6 +18,7 @@ import {
   type PlayerMatchStats,
   type PlayerStatsSubmission
 } from '../adapters/moderateReviewsAdapter';
+import { useDataRefresh } from '../app/contexts/DataRefreshContext';
 
 export type PlayerStatsModalProps = {
   visible: boolean;
@@ -58,6 +59,9 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false); // Track if we're updating existing stats
+
+  // Get dashboard refresh function
+  const { triggerDashboardRefresh } = useDataRefresh();
 
   useEffect(() => {
     const loadExistingStats = async () => {
@@ -179,6 +183,7 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
               text: 'OK',
               onPress: () => {
                 onSave(stats); // Call the parent callback
+                triggerDashboardRefresh(); // Trigger dashboard refresh
                 onClose(); // Close the modal
               }
             }

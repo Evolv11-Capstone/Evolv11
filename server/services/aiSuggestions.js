@@ -33,9 +33,10 @@ class AISuggestionsService {
    * @param {string} coachFeedback - Original coach feedback
    * @param {Object} playerStats - Player match stats for context
    * @param {string} playerName - Player's name for personalization
+   * @param {string} position - Player's position for position-specific suggestions
    * @returns {Promise<string|null>} - Enhanced feedback with suggestions or null if failed
    */
-  async generatePlayerSuggestions(coachFeedback, playerStats, playerName = 'the player') {
+  async generatePlayerSuggestions(coachFeedback, playerStats, playerName = 'the player', position = 'unknown') {
     if (!this.isAvailable()) {
       console.warn('🤖 AI suggestions unavailable - Gemini API not initialized');
       return null;
@@ -63,6 +64,10 @@ You are an experienced football coach providing constructive feedback to help pl
 
 Original coach feedback: "${coachFeedback}"
 
+Player details:
+- Position: ${position}
+- Name: ${playerName}
+
 Player match performance:
 - Goals: ${goals}
 - Assists: ${assists}
@@ -75,17 +80,25 @@ Player match performance:
 
 Instructions:
 1. First, rephrase the coach's feedback in a constructive, encouraging way that maintains honesty while being supportive
-2. Then provide exactly 3 bullet points with specific, actionable improvement suggestions based on the feedback and performance stats
-3. Keep the tone professional but encouraging
-4. Focus on specific skills, techniques, or tactical improvements
-5. Make suggestions practical and achievable
+2. Then provide exactly 3 bullet points with specific, actionable improvement suggestions based on the feedback, performance stats, AND the player's position
+3. Tailor suggestions to the player's position (e.g., goalkeepers focus on shot-stopping/distribution, defenders on tackling/positioning, midfielders on passing/vision, forwards on finishing/movement)
+4. Keep the tone professional but encouraging
+5. Focus on specific skills, techniques, or tactical improvements relevant to their position
+6. Make suggestions practical and achievable for a ${position}
+
+Position-specific focus areas:
+- GK (Goalkeeper): Shot-stopping, distribution, command of penalty area, communication, positioning
+- CB/LB/RB (Defenders): Tackling, marking, aerial duels, positioning, passing out from the back
+- CDM/CM/CAM (Midfielders): Passing accuracy, vision, work rate, pressing, ball retention
+- LW/RW (Wingers): Crossing, dribbling, tracking back, pace utilization, 1v1 situations
+- ST/CF (Forwards): Finishing, movement in the box, hold-up play, pressing from the front
 
 Format your response exactly like this:
 [Constructive rephrased feedback in 1-2 sentences]
 
-- [Specific improvement suggestion 1]
-- [Specific improvement suggestion 2] 
-- [Specific improvement suggestion 3]
+- [Position-specific improvement suggestion 1]
+- [Position-specific improvement suggestion 2] 
+- [Position-specific improvement suggestion 3]
 
 Do not include any other text, headers, or formatting.
 `;
@@ -148,7 +161,7 @@ Do not include any other text, headers, or formatting.
         coach_rating: 65
       };
 
-      const result = await this.generatePlayerSuggestions(testFeedback, testStats, 'Test Player');
+      const result = await this.generatePlayerSuggestions(testFeedback, testStats, 'Test Player', 'CM');
       
       return {
         success: true,

@@ -317,14 +317,16 @@ const submitPlayerMatchStats = async (req, res) => {
       try {
         console.log('🤖 Generating AI suggestions for player feedback...');
         
-        // Get player name for personalized suggestions
+        // Get player name and position for personalized suggestions
         const playerName = currentPlayer.name || `Player ${currentPlayer.id}`;
+        const playerPosition = currentPlayer.position || 'unknown';
         
         // Generate AI suggestions
         aiSuggestions = await aiSuggestionsService.generatePlayerSuggestions(
           feedback,
           matchStats,
-          playerName
+          playerName,
+          playerPosition
         );
 
         if (aiSuggestions) {
