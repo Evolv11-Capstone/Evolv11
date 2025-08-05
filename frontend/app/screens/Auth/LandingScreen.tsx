@@ -18,10 +18,12 @@ const { width, height } = Dimensions.get('window');
 // Modern Nike-inspired landing screen with Evolv11 branding
 export default function LandingScreen({ navigation }: any) {
   return (
+    
     <ImageBackground
-      source={require('../../../assets/images/Evolv11-kaki.png')}
+      source={require('../../../assets/images/stadiumEvolv11.png')}
       style={styles.backgroundImage}
-      resizeMode="contain" // Options: 'cover', 'contain', 'stretch', 'repeat', 'center'
+      resizeMode="cover" // Fill the entire screen
+      imageStyle={styles.backgroundImageStyle}
     >
       <View style={styles.container}>
         {/* Main Logo Section */}
@@ -33,17 +35,40 @@ export default function LandingScreen({ navigation }: any) {
           />
         </View>
 
-        {/* Navigation Arrow */}
-        <TouchableOpacity 
-          style={styles.arrowContainer}
-          onPress={() => navigation.navigate('About')} // Navigate to About screen
-          activeOpacity={0.7}
-        >
-          <View style={styles.arrowCircle}>
-            <Ionicons name="arrow-forward" size={24} color="#ffffff" />
-          </View>
-          <Text style={styles.arrowText}>Explore</Text>
-        </TouchableOpacity>
+        {/* Navigation Icons */}
+        <View style={styles.iconsContainer}>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('Landing')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="home" size={32} color="#ffffff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('Register')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="person-add" size={32} color="#ffffff" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('About')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="information-circle" size={32} color="#ffffff" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="log-in" size={32} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
 
         {/* Subtle Footer */}
         <View style={styles.footer}>
@@ -61,53 +86,48 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backgroundImageStyle: {
+    transform: [{ translateX: -0 }, { translateY: 0}] // Move background image to the right
   },
   container: {
     flex: 1,
-    backgroundColor: 'rgba(245, 243, 240, 0.8)', // Semi-transparent overlay
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 60,
     paddingHorizontal: 30,
-    paddingBottom: 110, // Extra padding to avoid tab bar
+    paddingBottom: 40, // Reduced padding since background takes full screen
   },
   logoSection: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
+    width: '100%'
   },
   logoImage: {
     width: width * 0.6,
     height: width * 0.6,
     maxWidth: 300,
     maxHeight: 300,
+    marginBottom: 100,
   },
-  arrowContainer: {
+  iconsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    marginBottom: 60, // Increased margin to avoid tab bar
+    width: '80%',
+    marginBottom: 20,
   },
-  arrowCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#1a4d3a', // Dark green from logo
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#1a4d3a',
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
-  arrowText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1a4d3a',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  iconButton: {
+    padding: 16,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   footer: {
     alignItems: 'center',
@@ -115,7 +135,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#818896ff',
     letterSpacing: 0.5,
     textAlign: 'center',
     fontWeight: '400',

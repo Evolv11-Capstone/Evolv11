@@ -35,14 +35,21 @@ export default function AboutScreen({ navigation }: any) {
         <Text style={styles.missionText}>
           Evolving football through intelligent analytics and empowering every player, coach, and team to reach their full potential.
         </Text>
-        
-        <View style={styles.imageContainer}>
+
+        <View style={styles.imageContainerMission}>
           <Image
-            source={{uri: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?ixlib=rb-1.2.1&w=1000&q=80'}} // User will add mission image here
-            style={styles.featureImage}
+            source={{uri: 'https://wallpaperaccess.com/full/563291.jpg'}} // User will add mission image here
+            style={styles.missionImage}
             resizeMode="cover"
           />
         </View>
+      </View>
+
+      {/* Section Divider */}
+      <View style={styles.dividerContainer}>
+        <View style={styles.dividerLine} />
+        <View style={styles.dividerDot} />
+        <View style={styles.dividerLine} />
       </View>
 
       {/* Features Section */}
@@ -166,29 +173,51 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#1a4d3a',
-    marginBottom: 16,
+    marginBottom: 15,
     letterSpacing: -0.5,
+    textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
   missionText: {
-    fontSize: 18,
+    fontSize: 16.5,
     lineHeight: 26,
     color: '#374151',
     fontWeight: '400',
-    marginBottom: 24,
+    marginBottom: 35,
     textAlign: 'left',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 30,
+    paddingHorizontal: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#d4b896',
+    opacity: 0.6,
+  },
+  dividerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#1a4d3a',
+    marginHorizontal: 16,
   },
   featureBlock: {
     marginBottom: 32,
   },
   featureContent: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
     marginBottom: 16,
   },
   featureIcon: {
     width: 60,
     height: 60,
+    marginTop: 32,
     borderRadius: 30,
     backgroundColor: '#ffffff',
     justifyContent: 'center',
@@ -224,6 +253,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
     marginBottom: 8,
     overflow: 'hidden',
+  },
+   imageContainerMission: {
+    width: '100%',
+    height: 200,
+    borderRadius: 0,
+    backgroundColor: '#e5e7eb',
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  missionImage: {
+    width: '100%',
+    height: '100%',
   },
   featureImage: {
     width: '100%',

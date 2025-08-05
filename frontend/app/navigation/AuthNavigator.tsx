@@ -26,7 +26,7 @@ export default function AuthNavigator() {
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
             borderTopColor: '#e5e7eb',
-            height: 70,
+            height: route.name === 'Landing' ? 0 : 70, // Hide tab bar only on Landing screen
             paddingTop: 8,
             paddingBottom: 8,
             shadowColor: '#1a4d3a',
@@ -38,6 +38,7 @@ export default function AuthNavigator() {
             left: 0,
             right: 0,
             bottom: 0,
+            display: route.name === 'Landing' ? 'none' : 'flex', // Completely hide on Landing
           },
           tabBarLabelStyle: {
             fontWeight: '600',
