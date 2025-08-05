@@ -216,9 +216,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 0, // Sharp edges
+    width: 70,
+    height: 70,
+    borderRadius: 40, // Make it circular (half of width/height)
     marginRight: 16,
     borderWidth: 2,
     borderColor: '#d4b896',

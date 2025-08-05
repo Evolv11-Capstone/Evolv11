@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 
 interface TopPerformerCardProps {
   title: string;
@@ -7,6 +7,8 @@ interface TopPerformerCardProps {
   imageUrl?: string;
   statLabel: string;
   statValue?: number;
+  playerId?: number;
+  onPress?: (playerId: number) => void;
 }
 
 export default function TopPerformerCard({
@@ -14,12 +16,30 @@ export default function TopPerformerCard({
   playerName,
   imageUrl,
   statLabel,
-  statValue
+  statValue,
+  playerId,
+  onPress
 }: TopPerformerCardProps) {
   const hasData = playerName && statValue !== undefined && statValue > 0;
+  const isInteractive = hasData && playerId && onPress;
+
+  const handlePress = () => {
+    if (isInteractive) {
+      onPress(playerId);
+    }
+  };
+
+  const CardWrapper = isInteractive ? TouchableOpacity : View;
 
   return (
-    <View style={styles.performerCard}>
+    <CardWrapper 
+      style={[
+        styles.performerCard,
+        isInteractive ? styles.interactiveCard : null
+      ]}
+      onPress={isInteractive ? handlePress : undefined}
+      activeOpacity={isInteractive ? 0.7 : 1}
+    >
       <Text style={styles.performerLabel}>{title}</Text>
       
       {hasData ? (
@@ -55,7 +75,7 @@ export default function TopPerformerCard({
           <Text style={styles.noDataText}>No standout performer</Text>
         </View>
       )}
-    </View>
+    </CardWrapper>
   );
 }
 
@@ -69,6 +89,17 @@ const styles = StyleSheet.create({
     borderLeftColor: '#d4b896',
     marginBottom: 12,
     minHeight: 100,
+  },
+  interactiveCard: {
+    backgroundColor: '#ffffff',
+    shadowColor: '#1a4d3a',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   performerLabel: {
     fontSize: 12,

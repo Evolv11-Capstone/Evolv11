@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, Alert, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import RequestCard from '../../../components/RequestCard'; // Component for join requests
 import TopPerformerCard from '../../../components/TopPerformerCard'; // Component for top performers
 import { useUser } from '../../contexts/UserContext'; // Get current user info
 import { useActiveTeam } from '../../contexts/ActiveTeamContext'; // Get active team
 import { useDataRefresh } from '../../contexts/DataRefreshContext'; // Get refresh context
+import { RootStackParamList } from '../../../types/navigationTypes';
 
 // Adapters to fetch and approve/reject requests
 import {
@@ -24,10 +26,13 @@ import { getMatchesForTeam } from '../../../adapters/matchAdapters';
 import { getMatchReviews, MatchReview } from '../../../adapters/moderateReviewsAdapter';
 import { Match } from '../../../types/matchTypes';
 
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'PlayerDetail'>;
+
 export default function DashboardScreen() {
   const { user } = useUser(); // Get user from global context
   const { activeTeamId } = useActiveTeam(); // Get selected team ID
   const { refreshTrigger, triggerDashboardRefresh } = useDataRefresh(); // Get refresh context
+  const navigation = useNavigation<NavigationProp>();
 
   const [requests, setRequests] = useState<any[]>([]); // Local state for requests
   const [upcomingMatch, setUpcomingMatch] = useState<Match | null>(null); // State for upcoming match
@@ -75,24 +80,14 @@ export default function DashboardScreen() {
           .sort((a: Match, b: Match) => new Date(b.match_date).getTime() - new Date(a.match_date).getTime());
         
         const mostRecentMatch = pastMatches.length > 0 ? pastMatches[0] : null;
-        console.log('🏆 Previous Match Debug:', {
-          totalMatches: matches.length,
-          pastMatchesCount: pastMatches.length,
-          mostRecentMatch: mostRecentMatch,
-          currentDate: currentDate.toISOString()
-        });
+       
         setPreviousMatch(mostRecentMatch);
 
         // If we have a previous match, fetch its reviews
         if (mostRecentMatch) {
           console.log('🎯 Fetching reviews for match ID:', mostRecentMatch.id);
           const [reviews, reviewsError] = await getMatchReviews(mostRecentMatch.id);
-          console.log('📊 Match Reviews Debug:', {
-            matchId: mostRecentMatch.id,
-            reviewsCount: reviews?.length,
-            reviews: reviews,
-            error: reviewsError
-          });
+         
           
           if (reviews && !reviewsError) {
             // Log each review to see the data structure
@@ -213,6 +208,11 @@ export default function DashboardScreen() {
     return topRated;
   };
 
+  // Handle navigation to player detail
+  const handlePlayerPress = (playerId: number) => {
+    navigation.navigate('PlayerDetail', { playerId });
+  };
+
   // Handle approve logic
   const handleApprove = async (id: number, role: string) => {
     const action = role === 'player' ? approvePlayerTeamRequest : approveCoachTeamRequest;
@@ -326,6 +326,8 @@ export default function DashboardScreen() {
                   imageUrl={getTopRated(previousMatchReviews)?.player_image}
                   statLabel="Rating"
                   statValue={getTopRated(previousMatchReviews)?.coach_rating}
+                  playerId={getTopRated(previousMatchReviews)?.player_id}
+                  onPress={handlePlayerPress}
                 />
 
                 <TopPerformerCard
@@ -334,6 +336,8 @@ export default function DashboardScreen() {
                   imageUrl={getTopPerformer('goals', previousMatchReviews)?.player_image}
                   statLabel="Goals"
                   statValue={getTopPerformer('goals', previousMatchReviews)?.goals}
+                  playerId={getTopPerformer('goals', previousMatchReviews)?.player_id}
+                  onPress={handlePlayerPress}
                 />
 
                 <TopPerformerCard
@@ -342,6 +346,8 @@ export default function DashboardScreen() {
                   imageUrl={getTopPerformer('assists', previousMatchReviews)?.player_image}
                   statLabel="Assists"
                   statValue={getTopPerformer('assists', previousMatchReviews)?.assists}
+                  playerId={getTopPerformer('assists', previousMatchReviews)?.player_id}
+                  onPress={handlePlayerPress}
                 />
 
                 <TopPerformerCard
@@ -350,6 +356,8 @@ export default function DashboardScreen() {
                   imageUrl={getTopPerformer('chances_created', previousMatchReviews)?.player_image}
                   statLabel="Chances"
                   statValue={getTopPerformer('chances_created', previousMatchReviews)?.chances_created}
+                  playerId={getTopPerformer('chances_created', previousMatchReviews)?.player_id}
+                  onPress={handlePlayerPress}
                 />
 
                 <TopPerformerCard
@@ -358,6 +366,8 @@ export default function DashboardScreen() {
                   imageUrl={getTopPerformer('tackles', previousMatchReviews)?.player_image}
                   statLabel="Tackles"
                   statValue={getTopPerformer('tackles', previousMatchReviews)?.tackles}
+                  playerId={getTopPerformer('tackles', previousMatchReviews)?.player_id}
+                  onPress={handlePlayerPress}
                 />
 
                 <TopPerformerCard
@@ -366,6 +376,8 @@ export default function DashboardScreen() {
                   imageUrl={getTopPerformer('interceptions', previousMatchReviews)?.player_image}
                   statLabel="Interceptions"
                   statValue={getTopPerformer('interceptions', previousMatchReviews)?.interceptions}
+                  playerId={getTopPerformer('interceptions', previousMatchReviews)?.player_id}
+                  onPress={handlePlayerPress}
                 />
               </View>
             </View>

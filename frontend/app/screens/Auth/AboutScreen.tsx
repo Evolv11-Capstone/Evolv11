@@ -38,7 +38,7 @@ export default function AboutScreen({ navigation }: any) {
         
         <View style={styles.imageContainer}>
           <Image
-            source={{uri: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTV8fHNvY2NlcnxlbnwwfHwwfHx8MA%3D%3D'}} // User will add mission image here
+            source={{uri: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?ixlib=rb-1.2.1&w=1000&q=80'}} // User will add mission image here
             style={styles.featureImage}
             resizeMode="cover"
           />

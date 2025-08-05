@@ -35,6 +35,7 @@ export default function PlayerDetailScreen() {
   const [moderateStats, setModerateStats] = useState<ModerateStats | null>(null);
   const [userData, setUserData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Note: User age is stored as a string in the database, not date_of_birth
 
@@ -75,6 +76,10 @@ export default function PlayerDetailScreen() {
         console.error('Failed to fetch player details:', err);
       } finally {
         setLoading(false);
+        // Add a delay to ensure smooth rendering of images and styling
+        setTimeout(() => {
+          setInitialLoading(false);
+        }, 800); // 800ms delay for smooth loading experience
       }
     };
 
@@ -98,11 +103,12 @@ export default function PlayerDetailScreen() {
     }
   };
 
-  if (loading) {
+  if (loading || initialLoading) {
     return (
       <View style={styles.loader}>
         <ActivityIndicator size="large" color="#1a4d3a" />
         <Text style={styles.loadingText}>Loading player details...</Text>
+        <Text style={styles.loadingSubtitle}>Preparing profile and statistics...</Text>
       </View>
     );
   }
@@ -250,6 +256,13 @@ const styles = StyleSheet.create({
     color: '#1a4d3a',
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingSubtitle: {
+    marginTop: 8,
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '400',
+    textAlign: 'center',
   },
   errorText: {
     color: '#1a4d3a',
