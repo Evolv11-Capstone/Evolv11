@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -346,7 +348,17 @@ const FeedbackDetailScreen = () => {
   console.log('DEBUG: isUnlocked:', isUnlocked, 'aiSuggestions:', aiSuggestions);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+    >
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Match Feedback</Text>
@@ -494,6 +506,9 @@ const FeedbackDetailScreen = () => {
             }
           }}
           textAlignVertical="top"
+          scrollEnabled={false}
+          blurOnSubmit={false}
+          returnKeyType="done"
         />
         
         <View style={styles.reflectionFooter}>
@@ -524,7 +539,8 @@ const FeedbackDetailScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -532,6 +548,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f3f0',
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     padding: 20,

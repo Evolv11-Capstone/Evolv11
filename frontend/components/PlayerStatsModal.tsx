@@ -10,6 +10,8 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import type { TeamPlayer } from '../types/playerTypes';
 import { 
@@ -225,7 +227,13 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
               <Text style={styles.loadingText}>Loading existing stats...</Text>
             </View>
           ) : (
-            <ScrollView>
+            <ScrollView 
+              style={styles.scrollContent}
+              contentContainerStyle={styles.scrollContentContainer}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}
+            >
               {/* Toggle-based Stats Section */}
               {fields
                 .filter(({ condition, section }) => condition !== false && section === 'stats')
@@ -298,6 +306,9 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
                   numberOfLines={4}
                   textAlignVertical="top"
                   maxLength={500}
+                  scrollEnabled={false}
+                  blurOnSubmit={false}
+                  returnKeyType="done"
                 />
                 <Text style={styles.characterCount}>
                   {feedback.length}/500 characters
@@ -351,6 +362,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
+  },
+  scrollContent: {
+    maxHeight: 400, // Set a specific max height instead of flex: 1
+  },
+  scrollContentContainer: {
+    paddingBottom: 20,
   },
   title: {
     fontSize: 18,

@@ -19,22 +19,66 @@ const { width } = Dimensions.get('window');
 // Nike-inspired About screen showing Evolv11 mission and features
 export default function AboutScreen({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(true);
+  const [imagesLoaded, setImagesLoaded] = useState(0);
+  const [minDelayPassed, setMinDelayPassed] = useState(false);
+  
+  const imageUrls = [
+    'https://wallpaperaccess.com/full/563291.jpg',
+    'https://e-scoutsoccer.com/wp-content/uploads/2021/07/the-organization-foto3.jpg',
+    'https://i2-prod.mirror.co.uk/article8961715.ece/ALTERNATES/s1200b/Manchester-United-v-Stoke-City-Premier-League.jpg',
+    'https://www.director11.com/wp-content/uploads/2024/08/Modelo-de-canteras-espanol-el-exito-de-desarrollar-talento.jpg'
+  ];
+  const totalImages = imageUrls.length;
 
   useEffect(() => {
-    // Show loading for 700ms to allow images and assets to load
+    // Preload all images during loading screen
+    imageUrls.forEach((url, index) => {
+      Image.prefetch(url)
+        .then(() => {
+          console.log(`Image ${index + 1} preloaded successfully`);
+          setImagesLoaded(prev => prev + 1);
+        })
+        .catch(() => {
+          console.log(`Image ${index + 1} failed to preload, counting as loaded`);
+          setImagesLoaded(prev => prev + 1);
+        });
+    });
+  }, []);
+
+  useEffect(() => {
+    // Ensure minimum 700ms delay
     const timer = setTimeout(() => {
-      setIsLoading(false);
+      setMinDelayPassed(true);
     }, 700);
 
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    // Fallback: Force loading to end after 3 seconds to prevent infinite loading
+    const fallbackTimer = setTimeout(() => {
+      console.log('Fallback triggered - forcing loading to end');
+      setIsLoading(false);
+    }, 3000);
+
+    return () => clearTimeout(fallbackTimer);
+  }, []);
+
+  useEffect(() => {
+    // Only hide loading when all images are loaded AND minimum delay has passed
+    if (imagesLoaded >= totalImages && minDelayPassed) {
+      console.log('All conditions met - hiding loading');
+      setIsLoading(false);
+    }
+  }, [imagesLoaded, minDelayPassed]);
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.loadingContent}>
           <ActivityIndicator size="large" color="#1a4d3a" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={styles.loadingText}>Uncovering our story...</Text>
+          
         </View>
       </View>
     );
@@ -61,7 +105,7 @@ export default function AboutScreen({ navigation }: any) {
 
         <View style={styles.imageContainerMission}>
           <Image
-            source={{uri: 'https://wallpaperaccess.com/full/563291.jpg'}} // User will add mission image here
+            source={{uri: imageUrls[0]}} // Mission image
             style={styles.missionImage}
             resizeMode="cover"
           />
@@ -94,7 +138,7 @@ export default function AboutScreen({ navigation }: any) {
           </View>
           <View style={styles.imageContainer}>
             <Image
-              source={{uri: 'https://e-scoutsoccer.com/wp-content/uploads/2021/07/the-organization-foto3.jpg'}} // User will add analytics image here
+              source={{uri: imageUrls[1]}} // Analytics image
               style={styles.featureImage}
               resizeMode="cover"
             />
@@ -116,7 +160,7 @@ export default function AboutScreen({ navigation }: any) {
           </View>
           <View style={styles.imageContainer}>
             <Image
-              source={{uri: 'https://i2-prod.mirror.co.uk/article8961715.ece/ALTERNATES/s1200b/Manchester-United-v-Stoke-City-Premier-League.jpg'}} // User will add team management image here
+              source={{uri: imageUrls[2]}} // Team management image
               style={styles.featureImage}
               resizeMode="cover"
             />
@@ -138,7 +182,7 @@ export default function AboutScreen({ navigation }: any) {
           </View>
           <View style={styles.imageContainer}>
             <Image
-              source={{uri: 'https://www.director11.com/wp-content/uploads/2024/08/Modelo-de-canteras-espanol-el-exito-de-desarrollar-talento.jpg'}} // User will add talent development image here
+              source={{uri: imageUrls[3]}} // Talent development image
               style={styles.featureImage}
               resizeMode="cover"
             />
@@ -181,25 +225,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontWeight: '500',
   },
-  loadingDots: {
-    flexDirection: 'row',
-    marginTop: 20,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#1a4d3a',
-    marginHorizontal: 4,
-  },
-  dot1: {
-    opacity: 0.4,
-  },
-  dot2: {
-    opacity: 0.6,
-  },
-  dot3: {
-    opacity: 0.8,
+  loadingProgress: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 8,
+    fontWeight: '400',
   },
   container: {
     flex: 1,
