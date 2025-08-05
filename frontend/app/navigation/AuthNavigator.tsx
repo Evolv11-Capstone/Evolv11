@@ -26,7 +26,7 @@ export default function AuthNavigator() {
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
             borderTopColor: '#e5e7eb',
-            height: route.name === 'Landing' ? 0 : 70, // Hide tab bar only on Landing screen
+            height: route.name === 'Landing' ? 0 : 110, // Hide tab bar only on Landing screen
             paddingTop: 8,
             paddingBottom: 8,
             shadowColor: '#1a4d3a',
@@ -38,6 +38,7 @@ export default function AuthNavigator() {
             left: 0,
             right: 0,
             bottom: 0,
+          
             display: route.name === 'Landing' ? 'none' : 'flex', // Completely hide on Landing
           },
           tabBarLabelStyle: {
@@ -54,7 +55,7 @@ export default function AuthNavigator() {
             if (route.name === 'About') iconName = focused ? 'information-circle' : 'information-circle-outline';
             if (route.name === 'Login') iconName = focused ? 'log-in' : 'log-in-outline';
             if (route.name === 'Register') iconName = focused ? 'person-add' : 'person-add-outline';
-            return <Ionicons name={iconName as any} size={22} color={color} />;
+            return <Ionicons name={iconName as any} size={30} color={color} />;
           },
           tabBarIconStyle: {
             marginTop: 2,

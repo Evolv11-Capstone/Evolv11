@@ -29,13 +29,13 @@ export default function PostAuthTabsNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: '#111',
+        tabBarActiveTintColor: '#1a4d3a',
         tabBarInactiveTintColor: '#888',
         tabBarStyle: {
           backgroundColor: '#fff',
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
-          height: 64,
+          height: 110,
           borderTopWidth: 0.5,
           borderColor: '#e0e0e0',
           shadowColor: '#000',
@@ -55,7 +55,7 @@ export default function PostAuthTabsNavigator() {
           if (route.name === 'TeamSetup') iconName = focused ? 'add-circle' : 'add-circle-outline';
           if (route.name === 'ActiveClubs') iconName = focused ? 'people' : 'people-outline';
           if (route.name === 'AccountSettings') iconName = focused ? 'settings' : 'settings-outline';
-          return <Ionicons name={iconName as any} size={22} color={color} />;
+          return <Ionicons name={iconName as any} size={30} color={color} />;
         },
       })}
     >
