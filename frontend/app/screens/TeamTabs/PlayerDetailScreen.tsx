@@ -133,27 +133,49 @@ export default function PlayerDetailScreen() {
       <View style={styles.playerInfoSection}>
         <Text style={styles.playerName}>{player.name}</Text>
         <View style={styles.playerMetadata}>
-          <View style={styles.metadataItem}>
-            <Text style={styles.metadataLabel}>Age</Text>
-            <Text style={styles.metadataValue}>
-              {userData && userData.age
-                ? `${userData.age} years`
-                : 'Unknown'
-              }
-            </Text>
+          <View style={styles.metadataRow}>
+            <View style={styles.metadataItem}>
+              <Text style={styles.metadataLabel}>Age</Text>
+              <Text style={styles.metadataValue}>
+                {userData && userData.age
+                  ? `${userData.age} years`
+                  : 'Unknown'
+                }
+              </Text>
+            </View>
+            <View style={styles.metadataItem}>
+              <Text style={styles.metadataLabel}>Height</Text>
+              <Text style={styles.metadataValue}>
+                {userData && userData.height
+                  ? userData.height
+                  : 'Not specified'
+                }
+              </Text>
+            </View>
           </View>
-          <View style={styles.metadataItem}>
-            <Text style={styles.metadataLabel}>Joined Club</Text>
-            <Text style={styles.metadataValue}>
-              {player.created_at 
-                ? new Date(player.created_at).toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })
-                : 'Unknown'
-              }
-            </Text>
+          <View style={styles.metadataRow}>
+            <View style={styles.metadataItem}>
+              <Text style={styles.metadataLabel}>Preferred Position</Text>
+              <Text style={styles.metadataValue}>
+                {userData && userData.preferred_position
+                  ? userData.preferred_position
+                  : 'Not specified'
+                }
+              </Text>
+            </View>
+            <View style={styles.metadataItem}>
+              <Text style={styles.metadataLabel}>Joined Club</Text>
+              <Text style={styles.metadataValue}>
+                {player.created_at 
+                  ? new Date(player.created_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })
+                  : 'Unknown'
+                }
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -314,13 +336,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   playerMetadata: {
+    marginTop: 8,
+  },
+  metadataRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   metadataItem: {
     alignItems: 'center',
     flex: 1,
+    paddingHorizontal: 8,
   },
   metadataLabel: {
     fontSize: 12,

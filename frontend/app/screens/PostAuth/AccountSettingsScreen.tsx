@@ -48,6 +48,20 @@ export default function AccountSettingsScreen() {
               <Text style={styles.infoValue}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</Text>
             </View>
             
+            {user.role === 'player' && user.height && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Height</Text>
+                <Text style={styles.infoValue}>{user.height}</Text>
+              </View>
+            )}
+            
+            {user.role === 'player' && user.preferred_position && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Preferred Position</Text>
+                <Text style={styles.infoValue}>{user.preferred_position}</Text>
+              </View>
+            )}
+            
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Joined</Text>
               <Text style={styles.infoValue}>{formatDate(user.created_at)}</Text>
@@ -73,6 +87,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
+    
   },
   header: {
     paddingTop: 40,
@@ -103,6 +118,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderTopWidth: 3,
     borderTopColor: '#1a4d3a',
+   
   },
   infoRow: {
     marginBottom: 24,
@@ -125,7 +141,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   logoutSection: {
-    marginTop: 32,
+    marginTop: -35,
     alignItems: 'center',
   },
   avatar: {

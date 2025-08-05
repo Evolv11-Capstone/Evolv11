@@ -38,13 +38,25 @@ export default function CreateNewUser() {
     email: '',
     password: '',
     role: 'player',
+    height: '',
+    preferred_position: '',
   });
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (field: keyof NewUserInput, value: string) => {
-    setUserData((prev) => ({ ...prev, [field]: value }));
+    setUserData((prev) => {
+      const updated = { ...prev, [field]: value };
+      
+      // If changing role to coach, clear player-specific fields
+      if (field === 'role' && value === 'coach') {
+        updated.height = '';
+        updated.preferred_position = '';
+      }
+      
+      return updated;
+    });
   };
 
   const pickImage = async () => {
@@ -71,7 +83,8 @@ export default function CreateNewUser() {
       !userData.age ||
       !userData.email ||
       !userData.password ||
-      !userData.nationality
+      !userData.nationality ||
+      (userData.role === 'player' && (!userData.height || !userData.preferred_position))
     ) {
       Alert.alert('Missing Fields', 'Please fill out all required fields.');
       return;
@@ -161,6 +174,68 @@ export default function CreateNewUser() {
               onChangeText={(text) => handleChange('age', text)}
               placeholderTextColor="#9ca3af"
             />
+
+            {userData.role === 'player' && (
+              <>
+                <Text style={styles.label}>Height</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    selectedValue={userData.height || ''}
+                    onValueChange={(value) => handleChange('height', value)}
+                    style={Platform.OS === 'ios' ? styles.pickerIOS : styles.picker}
+                    itemStyle={Platform.OS === 'ios' ? styles.pickerItemIOS : undefined}
+                  >
+                    <Picker.Item label="Select height..." value="" />
+                    <Picker.Item label="5'0&quot; (152 cm)" value="5'0&quot;" />
+                    <Picker.Item label="5'1&quot; (155 cm)" value="5'1&quot;" />
+                    <Picker.Item label="5'2&quot; (157 cm)" value="5'2&quot;" />
+                    <Picker.Item label="5'3&quot; (160 cm)" value="5'3&quot;" />
+                    <Picker.Item label="5'4&quot; (163 cm)" value="5'4&quot;" />
+                    <Picker.Item label="5'5&quot; (165 cm)" value="5'5&quot;" />
+                    <Picker.Item label="5'6&quot; (168 cm)" value="5'6&quot;" />
+                    <Picker.Item label="5'7&quot; (170 cm)" value="5'7&quot;" />
+                    <Picker.Item label="5'8&quot; (173 cm)" value="5'8&quot;" />
+                    <Picker.Item label="5'9&quot; (175 cm)" value="5'9&quot;" />
+                    <Picker.Item label="5'10&quot; (178 cm)" value="5'10&quot;" />
+                    <Picker.Item label="5'11&quot; (180 cm)" value="5'11&quot;" />
+                    <Picker.Item label="6'0&quot; (183 cm)" value="6'0&quot;" />
+                    <Picker.Item label="6'1&quot; (185 cm)" value="6'1&quot;" />
+                    <Picker.Item label="6'2&quot; (188 cm)" value="6'2&quot;" />
+                    <Picker.Item label="6'3&quot; (191 cm)" value="6'3&quot;" />
+                    <Picker.Item label="6'4&quot; (193 cm)" value="6'4&quot;" />
+                    <Picker.Item label="6'5&quot; (196 cm)" value="6'5&quot;" />
+                    <Picker.Item label="6'6&quot; (198 cm)" value="6'6&quot;" />
+                    <Picker.Item label="6'7&quot; (201 cm)" value="6'7&quot;" />
+                    <Picker.Item label="6'8&quot; (203 cm)" value="6'8&quot;" />
+                  </Picker>
+                </View>
+
+                <Text style={styles.label}>Preferred Position</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    selectedValue={userData.preferred_position || ''}
+                    onValueChange={(value) => handleChange('preferred_position', value)}
+                    style={Platform.OS === 'ios' ? styles.pickerIOS : styles.picker}
+                    itemStyle={Platform.OS === 'ios' ? styles.pickerItemIOS : undefined}
+                  >
+                    <Picker.Item label="Select position..." value="" />
+                    <Picker.Item label="Goalkeeper (GK)" value="GK" />
+                    <Picker.Item label="Left Back (LB)" value="LB" />
+                    <Picker.Item label="Center Back (CB)" value="CB" />
+                    <Picker.Item label="Right Back (RB)" value="RB" />
+                    <Picker.Item label="Defensive Midfielder (CDM)" value="CDM" />
+                    <Picker.Item label="Left Midfielder (LM)" value="LM" />
+                    <Picker.Item label="Center Midfielder (CM)" value="CM" />
+                    <Picker.Item label="Right Midfielder (RM)" value="RM" />
+                    <Picker.Item label="Attacking Midfielder (CAM)" value="CAM" />
+                    <Picker.Item label="Left Winger (LW)" value="LW" />
+                    <Picker.Item label="Right Winger (RW)" value="RW" />
+                    <Picker.Item label="Striker (ST)" value="ST" />
+                    <Picker.Item label="Center Forward (CF)" value="CF" />
+                  </Picker>
+                </View>
+              </>
+            )}
 
             <Text style={styles.label}>Nationality</Text>
             <NationalityDropdown

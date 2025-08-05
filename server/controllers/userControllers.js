@@ -56,16 +56,16 @@ exports.updateUser = async (req, res) => {
   }
 
   // Destructure fields allowed for update
-  const { name, email, age, nationality, role } = req.body;
+  const { name, email, age, nationality, role, height, preferred_position } = req.body;
 
   // Require at least one field to be updated
-  if (!name && !email && !age && !nationality && !role) {
+  if (!name && !email && !age && !nationality && !role && !height && !preferred_position) {
     return res.status(400).send({ message: 'No valid fields provided.' });
   }
 
   try {
     // Attempt to update the user
-    const updatedUser = await User.update(userToModify, { name, email, age, nationality, role });
+    const updatedUser = await User.update(userToModify, { name, email, age, nationality, role, height, preferred_position });
 
     // If user not found in DB
     if (!updatedUser) {

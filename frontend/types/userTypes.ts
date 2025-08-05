@@ -6,6 +6,8 @@ export type NewUserInput = {
   email: string;                         // Login email
   password: string;                      // Password (to be hashed on backend)
   role: 'player' | 'coach';              // Role selection from dropdown
+  height: string;                        // Height as string (e.g., "6'2\"" or "188 cm") - Required for players
+  preferred_position: string;            // Preferred football position (e.g., "ST", "CM", "GK") - Required for players
   image_url?: string;                    // Optional profile image URL (only for players)
 };
 
@@ -17,6 +19,8 @@ export type User = {
   email: string;
   nationality: string;
   role: 'player' | 'coach';
+  height: string;                        // Height as string (e.g., "6'2\"" or "188 cm")
+  preferred_position: string;            // Preferred football position
   image_url?: string;                    // Profile image from S3 (nullable for coaches)
   teamIds: number[];
   created_at: string;                     // Account creation date
@@ -41,5 +45,7 @@ export type UpdateUserInput = {
   email?: string;
   age?: string;
   nationality?: string;
+  height?: string;                       // Optional update for height
+  preferred_position?: string;           // Optional update for preferred position
   image_url?: string;                    // Optional update for profile image
 };

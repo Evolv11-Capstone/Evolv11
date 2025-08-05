@@ -9,16 +9,21 @@ const User = require('../models/User');
 exports.registerUser = async (req, res) => {
   try {
     // Destructure incoming fields from the request body
-    const { name, email, age, nationality, role, password, image_url } = req.body;
+    const { name, email, age, nationality, role, password, image_url, height, preferred_position } = req.body;
 
     // Validate minimum required fields for all users
     if (!email || !password) {
       return res.status(400).send({ message: 'Email and password are required.' });
     }
 
-    //  Enforce that 'player' users must include a profile image
-    if (role === 'player' && !image_url) {
-      return res.status(400).send({ message: 'Player image is required.' });
+    // Validate player-specific required fields
+    if (role === 'player') {
+      if (!height || !preferred_position) {
+        return res.status(400).send({ message: 'Height and preferred position are required for players.' });
+      }
+      if (!image_url) {
+        return res.status(400).send({ message: 'Player image is required.' });
+      }
     }
 
     // Create user with image_url (even if it's undefined for non-players)
@@ -29,6 +34,8 @@ exports.registerUser = async (req, res) => {
       nationality,
       role,
       password,
+      height,
+      preferred_position,
       image_url: image_url || null, // fallback to null if not provided
       created_at: new Date() // Set current time as created_at
     });

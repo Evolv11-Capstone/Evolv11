@@ -11,16 +11,18 @@ class User {
    * Constructor: Initializes a User instance from DB row data
    * @param {object} userData - Raw user row data from database
    */
-  constructor({ id, name, email, age, nationality, role, password_hash, image_url }) {
+  constructor({ id, name, email, age, nationality, role, password_hash, image_url, height, preferred_position, created_at }) {
     this.id = id;
     this.name = name;
     this.email = email;
     this.age = age;
     this.nationality = nationality;
     this.role = role;
+    this.height = height;
+    this.preferred_position = preferred_position;
     this.image_url = image_url || null; // Optional field for player image
     this.#passwordHash = password_hash;
-    this.created_at =  new Date(); // Default to current time
+    this.created_at = created_at || new Date(); // Use provided or default to current time
   }
 
   /**
@@ -37,18 +39,22 @@ class User {
    * @param {object} data - New user data including password and optional image_url
    * @returns {Promise<User>} - Created User instance
    */
-  static async create({ name, email, age, nationality, role, password, image_url, created_at }) {
+  static async create({ name, email, age, nationality, role, password, image_url, height, preferred_position, created_at }) {
     // Step 1: Securely hash the password
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Step 2: Insert the new user into the database
-    const result = await knex.raw(`
-      INSERT INTO users (name, email, age, nationality, role, password_hash, image_url, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      RETURNING *
-    `, [name, email, age, nationality, role, passwordHash, image_url, created_at || null]);
+    // Step 2: For coaches, provide default values for player-specific fields
+    const finalHeight = (role === 'coach' || !height) ? 'N/A' : height;
+    const finalPreferredPosition = (role === 'coach' || !preferred_position) ? 'N/A' : preferred_position;
 
-    // Step 3: Return new User instance
+    // Step 3: Insert the new user into the database
+    const result = await knex.raw(`
+      INSERT INTO users (name, email, age, nationality, role, password_hash, image_url, height, preferred_position, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `, [name, email, age, nationality, role, passwordHash, image_url, finalHeight, finalPreferredPosition, created_at || null]);
+
+    // Step 4: Return new User instance
     return new User(result.rows[0]);
   }
 
