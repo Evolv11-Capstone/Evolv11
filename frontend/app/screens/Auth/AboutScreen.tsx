@@ -1,6 +1,6 @@
 // screens/Auth/AboutScreen.tsx
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,6 +18,28 @@ const { width } = Dimensions.get('window');
 
 // Nike-inspired About screen showing Evolv11 mission and features
 export default function AboutScreen({ navigation }: any) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Show loading for 700ms to allow images and assets to load
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color="#1a4d3a" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header Section */}
@@ -143,6 +166,41 @@ export default function AboutScreen({ navigation }: any) {
 
 // Styles - Evolv11 Brand Colors & Nike-inspired Design
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#f5f3f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingContent: {
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#1a4d3a',
+    marginTop: 16,
+    fontWeight: '500',
+  },
+  loadingDots: {
+    flexDirection: 'row',
+    marginTop: 20,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#1a4d3a',
+    marginHorizontal: 4,
+  },
+  dot1: {
+    opacity: 0.4,
+  },
+  dot2: {
+    opacity: 0.6,
+  },
+  dot3: {
+    opacity: 0.8,
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f3f0', // Warm beige background matching logo
