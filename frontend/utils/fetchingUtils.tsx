@@ -52,9 +52,38 @@ export const fetchHandler = async <T = any>(
     // Make the HTTP request
     const response = await fetch(url, options);
 
-    // If the status is not OK (e.g. 400, 500), throw an error
+    // If the status is not OK (e.g. 400, 500), extract meaningful error message
     if (!response.ok) {
-      throw new Error(`Fetch failed with status - ${response.status}`);
+      let errorMessage = `Fetch failed with status - ${response.status}`;
+      
+      try {
+        // Try to extract the error message from the response body
+        const isJson = (response.headers.get('content-type') || '').includes('application/json');
+        if (isJson) {
+          const errorData = await response.json();
+          // Check for various error message formats that the server might send
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          }
+        } else {
+          // If not JSON, try to get text response
+          const errorText = await response.text();
+          if (errorText.trim()) {
+            errorMessage = errorText;
+          }
+        }
+      } catch (parseError) {
+        // If we can't parse the error response, use the generic message
+        console.warn('Could not parse error response:', parseError);
+      }
+      
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      throw error;
     }
 
     // Determine whether to parse the response as JSON

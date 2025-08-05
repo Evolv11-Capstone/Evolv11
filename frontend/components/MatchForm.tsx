@@ -73,7 +73,13 @@ const MatchForm = ({ visible, selectedSeason, activeTeamId, onClose, onMatchCrea
     const seasonStart = new Date(selectedSeason.start_date);
     const seasonEnd = new Date(selectedSeason.end_date);
     
-    if (date < seasonStart || date > seasonEnd) {
+    // Normalize dates to compare only date parts (remove time components)
+    const matchDate = new Date(date);
+    matchDate.setHours(0, 0, 0, 0);
+    seasonStart.setHours(0, 0, 0, 0);
+    seasonEnd.setHours(0, 0, 0, 0);
+    
+    if (matchDate < seasonStart || matchDate > seasonEnd) {
       const formatDate = (d: Date) => d.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -125,9 +131,21 @@ const MatchForm = ({ visible, selectedSeason, activeTeamId, onClose, onMatchCrea
 
       if (error) {
         // Check if it's a season validation error and provide friendly message
-        if (error.message && error.message.includes('season bounds')) {
+        if (error.message && (
+          error.message.includes('season bounds') || 
+          error.message.includes('outside season bounds') ||
+          error.message.includes('Season not found') ||
+          error.message.includes('does not belong to')
+        )) {
           const dateValidationError = validateMatchDate(matchDate);
-          Alert.alert('Invalid Match Date', dateValidationError || 'Match date must be within the season\'s date range.');
+          const friendlyMessage = dateValidationError || 
+            `Match date must be within the season's date range.\n\nSeason: ${selectedSeason.name}\nAllowed dates: ${formatDateDisplay(new Date(selectedSeason.start_date))} to ${formatDateDisplay(new Date(selectedSeason.end_date))}\nSelected date: ${formatDateDisplay(matchDate)}`;
+          
+          Alert.alert(
+            'Match Date Invalid', 
+            friendlyMessage,
+            [{ text: 'OK', style: 'default' }]
+          );
         } else {
           Alert.alert('Error', error.message || 'Could not create match.');
         }
@@ -195,7 +213,10 @@ const MatchForm = ({ visible, selectedSeason, activeTeamId, onClose, onMatchCrea
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Match Date</Text>
                 <TouchableOpacity
-                  style={styles.dateInput}
+                  style={[
+                    styles.dateInput,
+                    validateMatchDate(matchDate) && styles.dateInputError
+                  ]}
                   onPress={openDatePicker}
                   activeOpacity={0.7}
                 >
@@ -203,6 +224,16 @@ const MatchForm = ({ visible, selectedSeason, activeTeamId, onClose, onMatchCrea
                     {matchDate ? formatDateDisplay(matchDate) : 'Select match date'}
                   </Text>
                 </TouchableOpacity>
+                {validateMatchDate(matchDate) && (
+                  <Text style={styles.validationError}>
+                    {validateMatchDate(matchDate)}
+                  </Text>
+                )}
+                {selectedSeason && (
+                  <Text style={styles.seasonInfo}>
+                    Season dates: {formatDateDisplay(new Date(selectedSeason.start_date))} to {formatDateDisplay(new Date(selectedSeason.end_date))}
+                  </Text>
+                )}
               </View>
 
               <View style={styles.row}>
@@ -231,9 +262,12 @@ const MatchForm = ({ visible, selectedSeason, activeTeamId, onClose, onMatchCrea
               </View>
 
               <TouchableOpacity
-                style={styles.createButton}
+                style={[
+                  styles.createButton,
+                  (loading || validateMatchDate(matchDate)) && styles.createButtonDisabled
+                ]}
                 onPress={handleCreateMatch}
-                disabled={loading}
+                disabled={loading || !!validateMatchDate(matchDate)}
               >
                 <Text style={styles.createButtonText}>
                   {loading ? 'Creating...' : 'Create Match'}
@@ -434,6 +468,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
+  createButtonDisabled: {
+    backgroundColor: '#999',
+    opacity: 0.6,
+  },
+
   // Date picker modal styles (matching SeasonForm)
   modalOverlay: {
     flex: 1,
@@ -473,6 +512,25 @@ const styles = StyleSheet.create({
 
   datePicker: {
     backgroundColor: '#ffffff',
+  },
+
+  dateInputError: {
+    borderColor: '#dc3545',
+    borderWidth: 2,
+  },
+
+  validationError: {
+    color: '#dc3545',
+    fontSize: 14,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+
+  seasonInfo: {
+    color: '#666',
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 });
 

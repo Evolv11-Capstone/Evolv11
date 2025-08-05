@@ -23,6 +23,11 @@ const Match = {
       const seasonStart = new Date(season.start_date);
       const seasonEnd = new Date(season.end_date);
 
+      // Normalize dates to compare only date parts (remove time components)
+      matchDate.setHours(0, 0, 0, 0);
+      seasonStart.setHours(0, 0, 0, 0);
+      seasonEnd.setHours(0, 0, 0, 0);
+
       if (matchDate < seasonStart || matchDate > seasonEnd) {
         throw new Error(
           `Match date ${match_date} is outside season bounds (${season.start_date} to ${season.end_date})`

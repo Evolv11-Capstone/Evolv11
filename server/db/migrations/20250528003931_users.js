@@ -7,6 +7,8 @@ exports.up = function (knex) {
   return knex.schema.createTable("users", (table) => {
     table.increments("id").primary();
     table.string("name"); // User's full name
+    table.string("height").notNullable(); // User's height, stored as a string (e.g., "6'2\"")
+    table.string("preferred_position").notNullable(); // User's preferred position
     table.string("age").notNullable(); // User's age, stored as a string (e.g., "25")
     table.string("nationality").notNullable(); // User's nationality
     table.string("email").unique().notNullable(); // Login email

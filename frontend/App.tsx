@@ -3,7 +3,6 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator, View, TouchableOpacity, Text } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ArrowLeft } from 'lucide-react-native';
 
 // Contexts
@@ -31,15 +30,13 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 // Wrap app in global context providers
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <UserProvider>
-        <ActiveTeamProvider>
-          <DataRefreshProvider>
-            <Navigation />
-          </DataRefreshProvider>
-        </ActiveTeamProvider>
-      </UserProvider>
-    </GestureHandlerRootView>
+    <UserProvider>
+      <ActiveTeamProvider>
+        <DataRefreshProvider>
+          <Navigation />
+        </DataRefreshProvider>
+      </ActiveTeamProvider>
+    </UserProvider>
   );
 }
 
