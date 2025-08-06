@@ -319,7 +319,7 @@ export default function DashboardScreen() {
                 <Text style={styles.subSectionTitle}>Top Performers</Text>
               </View>
               
-              <View style={styles.performersGrid}>
+              <View style={styles.performersList}>
                 <TopPerformerCard
                   title="Top Rated"
                   playerName={getTopRated(previousMatchReviews)?.player_name}
@@ -549,10 +549,7 @@ const styles = StyleSheet.create({
     right: -165,
     top: -8, // Align icon vertically with text
   },
-  performersGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  performersList: {
     gap: 12,
-    justifyContent: 'space-between',
   },
 });

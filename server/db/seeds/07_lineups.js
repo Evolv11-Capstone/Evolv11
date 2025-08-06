@@ -5,17 +5,20 @@
 exports.seed = async function (knex) {
   await knex("lineups").del();
 
-  await knex("lineups").insert([
-    {
-      match_id: 1,
+  const formations = ["4-3-3", "4-4-2"];
+  const lineups = [];
+
+  for (let matchId = 1; matchId <= 25; matchId++) {
+    const randomFormation = formations[Math.floor(Math.random() * formations.length)];
+    lineups.push({
+      match_id: matchId,
       team_id: 1,
-      formation: "4-3-3", // Common formation
-    },
-    // Uncomment and adapt this if you have a second team
-    // {
-    //   match_id: 1,
-    //   team_id: 2,
-    //   formation: "4-2-3-1",
-    // },
-  ]);
+      formation: randomFormation,
+    });
+  }
+
+  await knex("lineups").insert(lineups);
+  
+  // Reset the auto-increment sequence to prevent future conflicts
+  await knex.raw(`SELECT setval('lineups_id_seq', (SELECT MAX(id) FROM lineups));`);
 };

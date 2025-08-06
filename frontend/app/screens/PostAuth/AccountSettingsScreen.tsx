@@ -3,8 +3,8 @@
 import React from 'react'; 
 // Import core React to use JSX
 
-import { View, Text, StyleSheet, SafeAreaView, Image } from 'react-native'; 
-// UI components: View for layout, Text for headers, StyleSheet for styling, SafeAreaView for safe area layout, Image for displaying images
+import { View, Text, StyleSheet, SafeAreaView, Image, ScrollView } from 'react-native'; 
+// UI components: View for layout, Text for headers, StyleSheet for styling, SafeAreaView for safe area layout, Image for displaying images, ScrollView for scrollable content
 
 import LogoutButton from '../../../components/LogoutButton'; 
 // Import the logout component which encapsulates session clearing and navigation
@@ -25,54 +25,56 @@ export default function AccountSettingsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Account Settings</Text>
-          <Text style={styles.subtitle}>Manage your profile information</Text>
-        </View>
-        
-        {user && (
-          <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Name</Text>
-              <Text style={styles.infoValue}>{user.name}</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>{user.email}</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Role</Text>
-              <Text style={styles.infoValue}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</Text>
-            </View>
-            
-            {user.role === 'player' && user.height && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Height</Text>
-                <Text style={styles.infoValue}>{user.height}</Text>
-              </View>
-            )}
-            
-            {user.role === 'player' && user.preferred_position && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Preferred Position</Text>
-                <Text style={styles.infoValue}>{user.preferred_position}</Text>
-              </View>
-            )}
-            
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Joined</Text>
-              <Text style={styles.infoValue}>{formatDate(user.created_at)}</Text>
-            </View>
-            
-            <View style={styles.logoutSection}>
-              <LogoutButton />
-            </View>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Account Settings</Text>
+            <Text style={styles.subtitle}>Manage your profile information</Text>
           </View>
-        )}
-      </View>
+          
+          {user && (
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Name</Text>
+                <Text style={styles.infoValue}>{user.name}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{user.email}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Role</Text>
+                <Text style={styles.infoValue}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</Text>
+              </View>
+              
+              {user.role === 'player' && user.height && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Height</Text>
+                  <Text style={styles.infoValue}>{user.height}</Text>
+                </View>
+              )}
+              
+              {user.role === 'player' && user.preferred_position && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Preferred Position</Text>
+                  <Text style={styles.infoValue}>{user.preferred_position}</Text>
+                </View>
+              )}
+              
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Joined</Text>
+                <Text style={styles.infoValue}>{formatDate(user.created_at)}</Text>
+              </View>
+              
+              <View style={styles.logoutSection}>
+                <LogoutButton />
+              </View>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -82,6 +84,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#f5f3f0', // Warm beige background matching logo
+  },
+  scrollView: {
+    flex: 1,
   },
   container: {
     flex: 1,
