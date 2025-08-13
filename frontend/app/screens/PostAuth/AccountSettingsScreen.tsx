@@ -12,6 +12,9 @@ import LogoutButton from '../../../components/LogoutButton';
 import { useUser } from '../../contexts/UserContext'; 
 // Import user context to access user information
 
+import { calculateAge } from '../../../utils/dateUtils';
+// Import utility function to calculate age from birthday
+
 function formatDate(dateString?: string) {
   if (!dateString) return 'Unknown';
   const date = new Date(dateString);
@@ -48,6 +51,13 @@ export default function AccountSettingsScreen() {
                 <Text style={styles.infoLabel}>Role</Text>
                 <Text style={styles.infoValue}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</Text>
               </View>
+              
+              {user.birthday && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Age</Text>
+                  <Text style={styles.infoValue}>{calculateAge(user.birthday)} years</Text>
+                </View>
+              )}
               
               {user.role === 'player' && user.height && (
                 <View style={styles.infoRow}>

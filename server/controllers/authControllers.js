@@ -9,7 +9,7 @@ const User = require('../models/User');
 exports.registerUser = async (req, res) => {
   try {
     // Destructure incoming fields from the request body
-    const { name, email, age, nationality, role, password, image_url, height, preferred_position } = req.body;
+    const { name, email, birthday, nationality, role, password, image_url, height, preferred_position } = req.body;
 
     // Validate minimum required fields for all users
     if (!email || !password) {
@@ -30,7 +30,7 @@ exports.registerUser = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      age,
+      birthday,
       nationality,
       role,
       password,

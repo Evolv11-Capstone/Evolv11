@@ -11,11 +11,11 @@ class User {
    * Constructor: Initializes a User instance from DB row data
    * @param {object} userData - Raw user row data from database
    */
-  constructor({ id, name, email, age, nationality, role, password_hash, image_url, height, preferred_position, created_at }) {
+  constructor({ id, name, email, birthday, nationality, role, password_hash, image_url, height, preferred_position, created_at }) {
     this.id = id;
     this.name = name;
     this.email = email;
-    this.age = age;
+    this.birthday = birthday;
     this.nationality = nationality;
     this.role = role;
     this.height = height;
@@ -39,7 +39,7 @@ class User {
    * @param {object} data - New user data including password and optional image_url
    * @returns {Promise<User>} - Created User instance
    */
-  static async create({ name, email, age, nationality, role, password, image_url, height, preferred_position, created_at }) {
+  static async create({ name, email, birthday, nationality, role, password, image_url, height, preferred_position, created_at }) {
     // Step 1: Securely hash the password
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
@@ -49,10 +49,10 @@ class User {
 
     // Step 3: Insert the new user into the database
     const result = await knex.raw(`
-      INSERT INTO users (name, email, age, nationality, role, password_hash, image_url, height, preferred_position, created_at)
+      INSERT INTO users (name, email, birthday, nationality, role, password_hash, image_url, height, preferred_position, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
-    `, [name, email, age, nationality, role, passwordHash, image_url, finalHeight, finalPreferredPosition, created_at || null]);
+    `, [name, email, birthday, nationality, role, passwordHash, image_url, finalHeight, finalPreferredPosition, created_at || null]);
 
     // Step 4: Return new User instance
     return new User(result.rows[0]);

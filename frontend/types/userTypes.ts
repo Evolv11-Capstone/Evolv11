@@ -1,7 +1,7 @@
 // Input structure for registering a new user
 export type NewUserInput = {
   name: string;                          // Full name of the user
-  age: string;                           // Age as string (e.g., "25")
+  birthday: string;                      // Date of birth in ISO format (e.g., "1999-05-15")
   nationality: string;                  // ISO country name or code
   email: string;                         // Login email
   password: string;                      // Password (to be hashed on backend)
@@ -15,7 +15,7 @@ export type NewUserInput = {
 export type User = {
   id: number;                            // Database user ID
   name: string;
-  age: string;
+  birthday: string;                      // Date of birth in ISO format (e.g., "1999-05-15")
   email: string;
   nationality: string;
   role: 'player' | 'coach';
@@ -43,7 +43,7 @@ export type ApiResponse = {
 export type UpdateUserInput = {
   name?: string;
   email?: string;
-  age?: string;
+  birthday?: string;                     // Date of birth in ISO format
   nationality?: string;
   height?: string;                       // Optional update for height
   preferred_position?: string;           // Optional update for preferred position

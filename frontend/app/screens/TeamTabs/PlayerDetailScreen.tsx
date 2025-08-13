@@ -22,6 +22,7 @@ import PlayerStatsSummary from '../../../components/PlayerStatsSummary';
 import PerNinetyMinutesExpectations from '../../../components/PerNinetyMinutesExpectations';
 import GrowthChart from '../../../components/GrowthChart';
 import SpiderGraph from '../../../components/SpiderGraph';
+import { calculateAge } from '../../../utils/dateUtils';
 
 type PlayerDetailRouteProp = RouteProp<RootStackParamList, 'PlayerDetail'>;
 
@@ -37,7 +38,7 @@ export default function PlayerDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // Note: User age is stored as a string in the database, not date_of_birth
+  // Note: User birthday is stored as a string in the database, not age
 
   useEffect(() => {
     const fetchData = async () => {
@@ -137,8 +138,8 @@ export default function PlayerDetailScreen() {
             <View style={styles.metadataItem}>
               <Text style={styles.metadataLabel}>Age</Text>
               <Text style={styles.metadataValue}>
-                {userData && userData.age
-                  ? `${userData.age} years`
+                {userData && userData.birthday
+                  ? `${calculateAge(userData.birthday)} years`
                   : 'Unknown'
                 }
               </Text>

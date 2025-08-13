@@ -10,10 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Modal,
 } from 'react-native';
 
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -24,6 +26,7 @@ import { uploadPlayerImage } from '../../../adapters/imageUploadAdapter';
 import { NewUserInput, ApiResponse } from '../../../types/userTypes';
 import { RootStackParamList } from '../../../types/navigationTypes';
 import { useUser } from '../../contexts/UserContext';
+import { calculateAge } from '../../../utils/dateUtils';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 
@@ -33,7 +36,7 @@ export default function CreateNewUser() {
 
   const [userData, setUserData] = useState<NewUserInput>({
     name: '',
-    age: '',
+    birthday: '',
     nationality: '',
     email: '',
     password: '',
@@ -44,6 +47,9 @@ export default function CreateNewUser() {
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempBirthday, setTempBirthday] = useState<Date>(new Date(2000, 0, 1));
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleChange = (field: keyof NewUserInput, value: string) => {
     setUserData((prev) => {
@@ -57,6 +63,37 @@ export default function CreateNewUser() {
       
       return updated;
     });
+  };
+
+  const formatDateDisplay = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime())) {
+      setTempBirthday(selectedDate);
+    }
+  };
+
+  const openDatePicker = () => {
+    if (userData.birthday) {
+      setTempBirthday(new Date(userData.birthday));
+    }
+    setShowDatePicker(true);
+  };
+
+  const confirmDate = () => {
+    const birthdayISO = tempBirthday.toISOString().split('T')[0];
+    handleChange('birthday', birthdayISO);
+    setShowDatePicker(false);
+  };
+
+  const cancelDatePicker = () => {
+    setShowDatePicker(false);
   };
 
   const pickImage = async () => {
@@ -80,13 +117,33 @@ export default function CreateNewUser() {
   const handleSubmit = async () => {
     if (
       !userData.name ||
-      !userData.age ||
+      !userData.birthday ||
       !userData.email ||
       !userData.password ||
+      !confirmPassword ||
       !userData.nationality ||
       (userData.role === 'player' && (!userData.height || !userData.preferred_position))
     ) {
       Alert.alert('Missing Fields', 'Please fill out all required fields.');
+      return;
+    }
+
+    // Validate password confirmation
+    if (userData.password !== confirmPassword) {
+      Alert.alert('Password Mismatch', 'Passwords do not match. Please try again.');
+      return;
+    }
+
+    // Validate password strength
+    if (userData.password.length < 6) {
+      Alert.alert('Weak Password', 'Password must be at least 6 characters long.');
+      return;
+    }
+
+    // Validate age (must be at least 13 years old)
+    const age = calculateAge(userData.birthday);
+    if (age < 13) {
+      Alert.alert('Age Requirement', 'You must be at least 13 years old to register.');
       return;
     }
 
@@ -165,15 +222,21 @@ export default function CreateNewUser() {
               placeholderTextColor="#9ca3af"
             />
 
-            <Text style={styles.label}>Age</Text>
-            <TextInput
-              placeholder="Enter your age"
-              keyboardType="numeric"
-              style={styles.input}
-              value={userData.age}
-              onChangeText={(text) => handleChange('age', text)}
-              placeholderTextColor="#9ca3af"
-            />
+            <Text style={styles.label}>Date of Birth</Text>
+            <TouchableOpacity
+              style={styles.dateInput}
+              onPress={openDatePicker}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.dateText, { color: userData.birthday ? '#1a4d3a' : '#9ca3af' }]}>
+                {userData.birthday ? formatDateDisplay(new Date(userData.birthday)) : 'Select your date of birth'}
+              </Text>
+            </TouchableOpacity>
+            {userData.birthday && (
+              <Text style={styles.ageDisplay}>
+                Age: {calculateAge(userData.birthday)} years
+              </Text>
+            )}
 
             {userData.role === 'player' && (
               <>
@@ -265,6 +328,22 @@ export default function CreateNewUser() {
               placeholderTextColor="#9ca3af"
             />
 
+            <Text style={styles.label}>Confirm Password</Text>
+            <TextInput
+              placeholder="Confirm your password"
+              style={[
+                styles.input,
+                confirmPassword && userData.password !== confirmPassword && styles.inputError
+              ]}
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholderTextColor="#9ca3af"
+            />
+            {confirmPassword && userData.password !== confirmPassword && (
+              <Text style={styles.errorText}>Passwords do not match</Text>
+            )}
+
             {userData.role === 'player' && (
               <>
                 <Text style={styles.label}>Player Photo</Text>
@@ -299,6 +378,61 @@ export default function CreateNewUser() {
                 <Text style={styles.footerLink}>Sign In</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Date Picker Modal */}
+            {showDatePicker && (
+              <>
+                {Platform.OS === 'ios' ? (
+                  <Modal
+                    visible={showDatePicker}
+                    transparent={true}
+                    animationType="slide"
+                  >
+                    <View style={styles.modalOverlay}>
+                      <View style={styles.datePickerContainer}>
+                        <View style={styles.datePickerHeader}>
+                          <TouchableOpacity onPress={cancelDatePicker}>
+                            <Text style={styles.datePickerButton}>Cancel</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.datePickerTitle}>Select Date of Birth</Text>
+                          <TouchableOpacity onPress={confirmDate}>
+                            <Text style={styles.datePickerButton}>Done</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <View style={{ backgroundColor: '#ffffff', padding: 10 }}>
+                          <DateTimePicker
+                            value={tempBirthday}
+                            mode="date"
+                            display="spinner"
+                            onChange={handleDateChange}
+                            style={[styles.datePicker, { backgroundColor: '#ffffff' }]}
+                            minimumDate={new Date(1900, 0, 1)}
+                            maximumDate={new Date()}
+                            textColor="#000000"
+                            accentColor="#1a4d3a"
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  </Modal>
+                ) : (
+                  <DateTimePicker
+                    value={tempBirthday}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      if (event.type === 'set' && selectedDate) {
+                        const birthdayISO = selectedDate.toISOString().split('T')[0];
+                        handleChange('birthday', birthdayISO);
+                      }
+                      setShowDatePicker(false);
+                    }}
+                    minimumDate={new Date(1900, 0, 1)}
+                    maximumDate={new Date()}
+                  />
+                )}
+              </>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -409,6 +543,18 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     marginBottom: 6,
   },
+
+  inputError: {
+    borderBottomColor: '#dc3545',
+  },
+
+  errorText: {
+    color: '#dc3545',
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+    marginBottom: 8,
+  },
   pickerWrapper: {
     borderWidth: 0,
     borderBottomWidth: 2,
@@ -504,5 +650,75 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     textDecorationLine: 'underline',
+  },
+
+  // Date picker styles
+  dateInput: {
+    borderWidth: 0,
+    borderBottomWidth: 2,
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: 'transparent',
+    paddingVertical: 10,
+    paddingHorizontal: 0,
+    marginBottom: 6,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+
+  dateText: {
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '400',
+  },
+
+  ageDisplay: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+
+  // Date picker modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+
+  datePickerContainer: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    paddingBottom: 20,
+    minHeight: 320,
+  },
+
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+
+  datePickerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a4d3a',
+    letterSpacing: -0.3,
+  },
+
+  datePickerButton: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a4d3a',
+  },
+
+  datePicker: {
+    backgroundColor: '#ffffff',
+    height: 250,
+    width: '100%',
   },
 });
