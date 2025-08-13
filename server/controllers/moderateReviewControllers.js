@@ -109,13 +109,13 @@ const calculateAttributeUpdates = (currentStats, matchStats) => {
   const baselinePenalty = -1.0; // Increased penalty for not meeting expectations
   const severePenalty = -2.5; // Severe penalty for really poor performance
   
-  const shootingGrowth = ((goals * 2.0 + chances_created * 0.8) * 0.2) + 
+  const shootingGrowth = ((goals * 3.0 + chances_created * 0.8) * 0.2) + 
     (goals === 0 && minutes_played > 45 ? baselinePenalty : 0); // Penalty for strikers/forwards with no goals
   
-  const passingGrowth = ((assists * 1.8 + chances_created * 1.2) * 0.2) + 
+  const passingGrowth = ((assists * 2.8 + chances_created * 1.2) * 0.2) + 
     (assists === 0 && chances_created === 0 && minutes_played > 45 ? baselinePenalty : 0); // Penalty for no creative contribution
   
-  const dribblingGrowth = ((goals * 0.5 + assists * 0.5 + chances_created * 0.8) * 0.2) + 
+  const dribblingGrowth = ((goals * 1 + assists * 0.8 + chances_created * 1) * 0.2) + 
     (goals === 0 && assists === 0 && chances_created === 0 && minutes_played > 30 ? baselinePenalty : 0);
   
   const defenseGrowth = ((tackles * 2.0 + interceptions * 2.0 + saves * 2.5) * 0.2) + 
@@ -164,6 +164,144 @@ const calculateAttributeUpdates = (currentStats, matchStats) => {
     coach_grade: newCoachGrade,
     overall_rating: newOverall
   };
+};
+
+/**
+ * Recalculate all player snapshots that occur after the given match chronologically
+ * @param {Object} trx - Knex transaction object
+ * @param {number} playerId - The player ID
+ * @param {number} currentMatchId - The match ID that was just updated
+ * @param {Object} currentMatchAttributes - The new attributes from the current match
+ * @returns {Object} Final attributes after all recalculations
+ */
+const recalculateSubsequentSnapshots = async (trx, playerId, currentMatchId, currentMatchAttributes) => {
+  try {
+    console.log(`🔄 Starting chain recalculation for player ${playerId} after match ${currentMatchId}`);
+
+    // Get the current match date to find subsequent matches
+    const currentMatch = await trx('matches')
+      .where({ id: currentMatchId })
+      .first();
+
+    if (!currentMatch) {
+      console.log(`⚠️ Current match ${currentMatchId} not found, skipping chain recalculation`);
+      return currentMatchAttributes; // Return the current match attributes if no match found
+    }
+
+    // Get all future matches for this player that have moderate_reviews, ordered chronologically
+    const futureMatchReviews = await trx('moderate_reviews')
+      .join('matches', 'moderate_reviews.match_id', 'matches.id')
+      .where('moderate_reviews.player_id', playerId)
+      .where('matches.match_date', '>', currentMatch.match_date)
+      .select(
+        'moderate_reviews.*',
+        'matches.match_date'
+      )
+      .orderBy('matches.match_date', 'asc');
+
+    if (futureMatchReviews.length === 0) {
+      console.log(`✅ No future matches found for player ${playerId}, chain recalculation complete`);
+      // Update the player's current attributes to the latest snapshot
+      await trx('players')
+        .where({ id: playerId })
+        .update({
+          shooting: currentMatchAttributes.shooting,
+          passing: currentMatchAttributes.passing,
+          dribbling: currentMatchAttributes.dribbling,
+          defense: currentMatchAttributes.defense,
+          physical: currentMatchAttributes.physical,
+          coach_grade: currentMatchAttributes.coach_grade,
+          overall_rating: currentMatchAttributes.overall_rating,
+          updated_at: trx.fn.now()
+        });
+      return currentMatchAttributes; // Return the current match attributes as final
+    }
+
+    console.log(`📊 Found ${futureMatchReviews.length} future matches to recalculate for player ${playerId}`);
+
+    // Start with the current match's attributes as the baseline for the next match
+    let previousAttributes = currentMatchAttributes;
+
+    // Process each future match chronologically
+    for (const review of futureMatchReviews) {
+      const matchStats = {
+        goals: review.goals || 0,
+        assists: review.assists || 0,
+        saves: review.saves || 0,
+        tackles: review.tackles || 0,
+        interceptions: review.interceptions || 0,
+        chances_created: review.chances_created || 0,
+        minutes_played: review.minutes_played || 0,
+        coach_rating: review.coach_rating || 50
+      };
+
+      // Calculate new attributes based on the previous match's snapshot
+      const newAttributes = calculateAttributeUpdates(previousAttributes, matchStats);
+
+      // Update or create the snapshot for this match
+      const existingSnapshot = await trx('player_snapshots')
+        .where({ player_id: playerId, match_id: review.match_id })
+        .first();
+
+      if (existingSnapshot) {
+        // Update existing snapshot with aligned timestamp
+        await trx('player_snapshots')
+          .where({ player_id: playerId, match_id: review.match_id })
+          .update({
+            shooting: newAttributes.shooting,
+            passing: newAttributes.passing,
+            dribbling: newAttributes.dribbling,
+            defense: newAttributes.defense,
+            physical: newAttributes.physical,
+            coach_grade: newAttributes.coach_grade,
+            overall_rating: newAttributes.overall_rating,
+            created_at: review.match_date // Align with match date
+          });
+        console.log(`🔄 Updated snapshot for match ${review.match_id} (${review.match_date})`);
+      } else {
+        // Create new snapshot with aligned timestamp
+        await trx('player_snapshots')
+          .insert({
+            player_id: playerId,
+            match_id: review.match_id,
+            shooting: newAttributes.shooting,
+            passing: newAttributes.passing,
+            dribbling: newAttributes.dribbling,
+            defense: newAttributes.defense,
+            physical: newAttributes.physical,
+            coach_grade: newAttributes.coach_grade,
+            overall_rating: newAttributes.overall_rating,
+            created_at: review.match_date // Use match date for chronological accuracy
+          });
+        console.log(`✅ Created new snapshot for match ${review.match_id} (${review.match_date})`);
+      }
+
+      // Use this match's attributes as the baseline for the next match
+      previousAttributes = newAttributes;
+    }
+
+    // Update the player's current attributes to reflect the final state after all recalculations
+    await trx('players')
+      .where({ id: playerId })
+      .update({
+        shooting: previousAttributes.shooting,
+        passing: previousAttributes.passing,
+        dribbling: previousAttributes.dribbling,
+        defense: previousAttributes.defense,
+        physical: previousAttributes.physical,
+        coach_grade: previousAttributes.coach_grade,
+        overall_rating: previousAttributes.overall_rating,
+        updated_at: trx.fn.now()
+      });
+
+    console.log(`✅ Chain recalculation complete for player ${playerId}. Final attributes updated.`);
+    
+    return previousAttributes; // Return the final attributes
+
+  } catch (error) {
+    console.error(`❌ Error during chain recalculation for player ${playerId}:`, error);
+    throw error; // Re-throw to trigger transaction rollback
+  }
 };
 
 /**
@@ -233,9 +371,10 @@ const submitPlayerMatchStats = async (req, res) => {
     
     if (existingReview) {
       // Check if we should generate AI suggestions
+      // Only regenerate if feedback is present AND (no existing suggestions OR feedback has changed)
       shouldGenerateAI = feedback && 
                         feedback.trim().length > 0 && 
-                        !existingReview.ai_suggestions;
+                        (!existingReview.ai_suggestions || existingReview.feedback !== feedback);
       
       // Update existing review
       await trx('moderate_reviews')
@@ -263,27 +402,26 @@ const submitPlayerMatchStats = async (req, res) => {
     // Calculate new player attributes using baseline stats from snapshots
     const newAttributes = calculateAttributeUpdates(baselineStats, matchStats);
 
-    // Update player attributes
-    await trx('players')
-      .where({ id: player_id })
-      .update({
-        shooting: newAttributes.shooting,
-        passing: newAttributes.passing,
-        dribbling: newAttributes.dribbling,
-        defense: newAttributes.defense,
-        physical: newAttributes.physical,
-        coach_grade: newAttributes.coach_grade,
-        overall_rating: newAttributes.overall_rating,
-        updated_at: knex.fn.now()
-      });
+    // Get the current match for timestamp alignment
+    const currentMatch = await trx('matches')
+      .where({ id: match_id })
+      .first();
 
-    // Create snapshot for growth tracking
+    if (!currentMatch) {
+      await trx.rollback();
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Match not found' 
+      });
+    }
+
+    // Create or update snapshot for the current match
     const existingSnapshot = await trx('player_snapshots')
       .where({ player_id, match_id })
       .first();
 
     if (existingSnapshot) {
-      // Update existing snapshot
+      // Update existing snapshot with aligned timestamp
       await trx('player_snapshots')
         .where({ player_id, match_id })
         .update({
@@ -293,10 +431,11 @@ const submitPlayerMatchStats = async (req, res) => {
           defense: newAttributes.defense,
           physical: newAttributes.physical,
           coach_grade: newAttributes.coach_grade,
-          overall_rating: newAttributes.overall_rating
+          overall_rating: newAttributes.overall_rating,
+          created_at: currentMatch.match_date // Align with match date
         });
     } else {
-      // Create new snapshot
+      // Create new snapshot with aligned timestamp
       await trx('player_snapshots')
         .insert({
           player_id,
@@ -307,9 +446,13 @@ const submitPlayerMatchStats = async (req, res) => {
           defense: newAttributes.defense,
           physical: newAttributes.physical,
           coach_grade: newAttributes.coach_grade,
-          overall_rating: newAttributes.overall_rating
+          overall_rating: newAttributes.overall_rating,
+          created_at: currentMatch.match_date // Use match date for chronological accuracy
         });
     }
+
+    // Recalculate all subsequent snapshots chronologically
+    await recalculateSubsequentSnapshots(trx, player_id, match_id, newAttributes);
 
     // Generate AI suggestions if feedback was provided
     let aiSuggestions = null;
@@ -351,6 +494,19 @@ const submitPlayerMatchStats = async (req, res) => {
 
     await trx.commit();
 
+    // Get the final player attributes after chain recalculation
+    const finalPlayer = await knex('players')
+      .where({ id: player_id })
+      .first();
+
+    if (!finalPlayer) {
+      console.error(`❌ Player ${player_id} not found after transaction commit`);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Player data inconsistency after update'
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: 'Player stats updated successfully',
@@ -371,8 +527,17 @@ const submitPlayerMatchStats = async (req, res) => {
              baselineStats.physical * 0.15 + baselineStats.coach_grade * 0.1)
           )
         },
-        new_attributes: newAttributes,
-        growth: {
+        match_attributes: newAttributes, // Attributes calculated for this specific match
+        final_attributes: { // Final attributes after chain recalculation
+          shooting: finalPlayer.shooting || 50,
+          passing: finalPlayer.passing || 50,
+          dribbling: finalPlayer.dribbling || 50,
+          defense: finalPlayer.defense || 50,
+          physical: finalPlayer.physical || 50,
+          coach_grade: finalPlayer.coach_grade || 50,
+          overall_rating: finalPlayer.overall_rating || 50
+        },
+        match_growth: { // Growth specifically from this match
           shooting: newAttributes.shooting - baselineStats.shooting,
           passing: newAttributes.passing - baselineStats.passing,
           dribbling: newAttributes.dribbling - baselineStats.dribbling,
@@ -628,5 +793,6 @@ module.exports = {
   getMatchReviews,
   testAISuggestions,
   updatePlayerReflection,
-  calculateAttributeUpdates // Export for testing
+  calculateAttributeUpdates, // Export for testing
+  recalculateSubsequentSnapshots // Export for testing
 };

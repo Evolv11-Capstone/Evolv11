@@ -6,16 +6,21 @@ exports.seed = async function (knex) {
   await knex("moderate_reviews").del();
 
   const feedbackOptions = [
-    "Needs to improve passing under pressure.",
-    "Great work rate but needs better positioning.",
-    "Excellent performance, keep it up!",
-    "Work on first touch and ball control.",
-    "Strong defensive display today.",
-    "Created good chances, finish needs work.",
-    "Leadership on the field was outstanding.",
-    "Needs to track back more consistently.",
-    "Good movement off the ball.",
-    "Decision making in final third needs improvement.",
+    "Exceptional technical ability shown today, maintain this elite standard.",
+    "Outstanding work rate and intelligent positioning throughout the match.",
+    "Excellent performance, your decision-making under pressure was exemplary.",
+    "Superb first touch and ball control, exactly what we expect at this level.", 
+    "Dominant defensive display, kept their attackers quiet all game.",
+    "Clinical finishing and movement, created several quality chances.",
+    "Leadership and communication on the field was world-class today.",
+    "Perfect tracking back and defensive transitions, textbook performance.",
+    "Brilliant movement off the ball, always available for the pass.",
+    "Elite-level passing range and vision, dictated the tempo perfectly.",
+    "Outstanding pressing and ball recovery, set the tone defensively.",
+    "Exceptional crossing and final ball delivery from wide areas.",
+    "Composed on the ball under pressure, exactly what elite players do.",
+    "Excellent reading of the game, anticipated danger situations perfectly.",
+    "World-class technique in tight spaces, made difficult look easy."
   ];
 
   const reflectionOptions = [
@@ -82,18 +87,18 @@ function generateMatchStats(teamScore, opponentScore) {
   const isLoss = teamScore < opponentScore;
   const goalDifference = teamScore - opponentScore;
 
-  // Initialize all players with base stats
+  // Initialize all players with base stats for elite performance
   for (let i = 0; i < 7; i++) {
     players.push({
       position: positions[i],
-      minutes_played: Math.floor(Math.random() * 31) + 60, // 60-90 minutes
+      minutes_played: Math.floor(Math.random() * 16) + 75, // 75-90 minutes (elite players play more)
       goals: 0,
       assists: 0,
       tackles: 0,
       interceptions: 0,
       saves: 0,
       chances_created: 0,
-      coach_rating: 60,
+      coach_rating: 75, // Base rating for elite team
     });
   }
 
@@ -120,113 +125,172 @@ function distributeGoals(players, teamScore) {
   const midfielders = [1, 2, 6]; // CMs
   
   let goalsRemaining = teamScore;
-  
+
   while (goalsRemaining > 0) {
-    // 70% chance for attackers, 25% for midfielders, 5% for defenders
+    // 85% chance for attackers, 13% for midfielders, 2% for defenders
     const random = Math.random();
     let scorerIndex;
     
-    if (random < 0.70) {
+    if (random < 0.85) {
       scorerIndex = attackingPositions[Math.floor(Math.random() * attackingPositions.length)];
-    } else if (random < 0.95) {
+    } else if (random < 0.98) {
       scorerIndex = midfielders[Math.floor(Math.random() * midfielders.length)];
     } else {
       scorerIndex = Math.floor(Math.random() * 7); // Any player
     }
-    
-    // Limit individual goals (max 3 per player)
-    if (players[scorerIndex].goals < 3) {
+
+    // Elite team: allow up to 4 goals per player
+    if (players[scorerIndex].goals < 4) {
       players[scorerIndex].goals++;
       goalsRemaining--;
     }
   }
 }
 
+
 function distributeAssists(players, teamScore) {
-  const potentialAssists = Math.max(0, teamScore - Math.floor(Math.random() * 2)); // 0-2 fewer assists than goals
-  
+  // Elite teams often have more assists than goals due to intricate play
+  const potentialAssists = Math.floor(teamScore * 1.25) + Math.floor(Math.random() * 2); 
+  // Assists = 125% of goals on average + some randomness
+
   for (let i = 0; i < potentialAssists; i++) {
-    // Midfielders and wingers more likely to assist
+    // Elite midfielders and wingers dominate assists
     const random = Math.random();
     let assisterIndex;
     
-    if (random < 0.60) {
+    if (random < 0.65) {
       assisterIndex = [1, 2, 6][Math.floor(Math.random() * 3)]; // CMs
-    } else if (random < 0.85) {
+    } else if (random < 0.95) {
       assisterIndex = 4; // RW
-    } else {
-      assisterIndex = Math.floor(Math.random() * 7); // Any player
+    } else if (random < 1) {
+      assisterIndex = 0; // ST
     }
-    
-    players[assisterIndex].assists++;
+
+    // Elite players can have multiple assists
+    if (players[assisterIndex] && players[assisterIndex].assists < 5) {
+      players[assisterIndex].assists++;
+    }
   }
 }
 
+
 function generateChancesCreated(players, teamScore, opponentScore) {
-  const baseChances = Math.max(3, teamScore * 2 + Math.floor(Math.random() * 5));
-  
-  // Distribute chances among attacking players primarily
+  // Elite teams generate lots of chances; scale with intensity of match
+  const matchIntensity = teamScore + opponentScore;
+  const baseChances = Math.max(10, teamScore * 3 + Math.floor(Math.random() * 6) + matchIntensity); 
+  // Typical: 12–18 chances
+
   for (let i = 0; i < baseChances; i++) {
     const random = Math.random();
     let creatorIndex;
-    
+
     if (random < 0.35) {
-      creatorIndex = 0; // ST
-    } else if (random < 0.60) {
-      creatorIndex = 4; // RW
-    } else if (random < 0.90) {
       creatorIndex = [1, 2, 6][Math.floor(Math.random() * 3)]; // CMs
+    } else if (random < 0.55) {
+      creatorIndex = 4; // RW
+    } else if (random < 0.70) {
+      creatorIndex = 0; // ST
+    } else if (random < 0.85) {
+      creatorIndex = 5; // RB
     } else {
-      creatorIndex = Math.floor(Math.random() * 7); // Any player
+      creatorIndex = Math.floor(Math.random() * 7); // Wildcard
     }
-    
-    players[creatorIndex].chances_created++;
+
+    if (players[creatorIndex]) {
+      players[creatorIndex].chances_created++;
+    }
+  }
+
+  // Ensure minimum for key attackers
+  const keyAttackers = [0, 4]; // ST and RW
+  keyAttackers.forEach(index => {
+    if (players[index].chances_created < 5) {
+      players[index].chances_created = Math.floor(Math.random() * 3) + 5; // Guarantee 5–7
+    }
+  });
+
+  // Ensure at least 1 CM hits decent creative numbers
+  const randomCM = [1, 2, 6][Math.floor(Math.random() * 3)];
+  if (players[randomCM].chances_created < 4) {
+    players[randomCM].chances_created = Math.floor(Math.random() * 3) + 4; // 4–6
   }
 }
 
+
 function generateDefensiveStats(players, teamScore, opponentScore) {
-  // More defensive work when losing or in tight games
-  const defensivePressure = opponentScore >= teamScore ? 1.5 : 1.0;
+  // Elite teams press high and defend as a unit
+  const defensivePressure = opponentScore >= teamScore ? 2.2 : 1.7; // More intense defensive work
   
   const defensivePositions = [3, 5]; // CB, RB
   const midfielders = [1, 2, 6]; // CMs
+  const attackers = [0, 4]; // ST, RW
   
-  // Generate tackles
+  // Generate tackles and interceptions for defenders (elite defensive stats)
   defensivePositions.forEach(pos => {
-    players[pos].tackles = Math.floor((Math.random() * 4 + 2) * defensivePressure); // 2-6 tackles
-    players[pos].interceptions = Math.floor((Math.random() * 3 + 1) * defensivePressure); // 1-4 interceptions
+    players[pos].tackles = Math.floor((Math.random() * 6 + 4) * defensivePressure); // 4-10 tackles
+    players[pos].interceptions = Math.floor((Math.random() * 5 + 2) * defensivePressure); // 2-7 interceptions
+    
+    // Elite defenders contribute to attack occasionally
+    if (Math.random() < 0.35) {
+      players[pos].chances_created = Math.floor(Math.random() * 6) + 1; // 1-6 chances
+    }
+    if (Math.random() < 0.35) {
+      players[pos].assists = 1; // Occasional assist from overlapping
+    }
   });
   
-  // Midfielders get some defensive stats
+  // Midfielders get substantial defensive stats (box-to-box elite players)
   midfielders.forEach(pos => {
-    players[pos].tackles = Math.floor((Math.random() * 3 + 1) * defensivePressure); // 1-4 tackles
-    players[pos].interceptions = Math.floor((Math.random() * 2 + 1) * defensivePressure); // 1-3 interceptions
+    players[pos].tackles = Math.floor((Math.random() * 6 + 3) * defensivePressure); // 3-8 tackles
+    players[pos].interceptions = Math.floor((Math.random() * 5 + 2) * defensivePressure); // 2-6 interceptions
+    
+    // Elite midfielders always create chances
+    if (players[pos].chances_created < 2) {
+      players[pos].chances_created = Math.floor(Math.random() * 4) + 2; // 2-5 chances
+    }
+  });
+  
+  // Attackers contribute to pressing (modern football)
+  attackers.forEach(pos => {
+    players[pos].tackles = Math.floor((Math.random() * 5 + 1) * defensivePressure); // 1-4 tackles
+    players[pos].interceptions = Math.floor((Math.random() * 5 + 1) * defensivePressure); // 1-3 interceptions
   });
 }
 
 function setCoachRatings(players, isWin, isDraw, goalDifference) {
   players.forEach((player, index) => {
-    let baseRating = 70; // Neutral performance
+    let baseRating = 82; // Higher base for elite team (was 70)
     
-    // Adjust based on result
+    // Adjust based on result (elite teams expected to win)
     if (isWin) {
-      baseRating += Math.min(15, goalDifference * 3); // Up to 85 for big wins
+      baseRating += Math.min(10, goalDifference * 2); // Up to 92 for big wins
     } else if (isDraw) {
-      baseRating += Math.floor(Math.random() * 10) - 5; // 65-75 for draws
+      baseRating += Math.floor(Math.random() * 8) - 4; // 78-86 for draws
     } else {
-      baseRating -= Math.min(20, Math.abs(goalDifference) * 4); // Down to 50 for bad losses
+      baseRating -= Math.min(15, Math.abs(goalDifference) * 3); // Down to 67 for bad losses
     }
     
-    // Individual performance bonuses
-    if (player.goals > 0) baseRating += player.goals * 5; // +5 per goal
-    if (player.assists > 0) baseRating += player.assists * 3; // +3 per assist
-    if (player.tackles > 4) baseRating += 5; // Defensive work bonus
+    // Individual performance bonuses (elite level expectations)
+    if (player.goals > 0) baseRating += player.goals * 3; // +3 per goal (elite expect goals)
+    if (player.assists > 0) baseRating += player.assists * 2; // +2 per assist
+    if (player.chances_created > 3) baseRating += Math.min(5, player.chances_created - 3); // Bonus for creating
+    if (player.tackles > 5) baseRating += 3; // Defensive work bonus
+    if (player.interceptions > 3) baseRating += 2; // Interception bonus
     
-    // Add random variation
-    baseRating += Math.floor(Math.random() * 10) - 5; // ±5 variation
+    // Elite players get bonuses for well-rounded performances
+    const statsCount = [player.goals, player.assists, player.chances_created, player.tackles, player.interceptions]
+      .filter(stat => stat > 0).length;
+    if (statsCount >= 3) baseRating += 3; // Well-rounded performance bonus
     
-    // Clamp between 60-100
-    player.coach_rating = Math.max(60, Math.min(100, baseRating));
+    // Minutes played factor (elite players expected to play full matches)
+    if (player.minutes_played >= 85) baseRating += 2;
+    else if (player.minutes_played < 80) baseRating -= 3;
+    
+    // Add smaller random variation for elite consistency
+    baseRating += Math.floor(Math.random() * 6) - 3; // ±3 variation (was ±5)
+    
+    // Clamp between 75-95 for elite team
+    player.coach_rating = Math.max(75, Math.min(95, baseRating));
   });
 }
 
@@ -238,66 +302,66 @@ function setCoachRatings(players, isWin, isDraw, goalDifference) {
  * @returns {string} - Formatted AI suggestions
  */
 function generateMockAISuggestions(feedback, position, playerStats) {
-  // Position-specific suggestion templates
+  // Position-specific suggestion templates for elite players
   const suggestionTemplates = {
     ST: {
       positive: [
-        "Your attacking instincts and goal-scoring threat were evident today. Continue developing your clinical finishing.",
-        "Strong performance in the final third. Your movement and positioning created good opportunities.",
-        "Excellent work rate and attacking presence. Keep building on this foundation for consistent goal production."
+        "Your elite attacking instincts and clinical finishing were on full display. Your movement in the box created multiple scoring opportunities.",
+        "Exceptional performance in the final third. Your positioning and timing of runs caused constant problems for their defense.",
+        "World-class work rate and attacking presence. Your link-up play and hold-up work were exemplary for a player of your caliber."
       ],
       improvements: [
-        "Practice shooting from different angles in training to improve finishing accuracy",
-        "Work on quick first touches in tight spaces to create more shooting opportunities", 
-        "Focus on timing your runs to stay onside while exploiting defensive gaps"
+        "Continue perfecting your finishing from different angles to maintain your elite scoring rate",
+        "Work on varying your movement patterns to become even more unpredictable in the box", 
+        "Focus on developing different types of finishes for various goalscoring situations"
       ]
     },
     CM: {
       positive: [
-        "Your midfield presence and work rate contributed well to the team's overall performance.",
-        "Good energy and passing distribution from the center of the pitch. Your vision is developing well.",
-        "Solid midfield performance with effective ball retention and forward passing."
+        "Your midfield dominance and exceptional passing range controlled the tempo of the game perfectly.",
+        "Outstanding energy and vision from the center of the pitch. Your ability to switch play and find space was elite-level.",
+        "Brilliant midfield performance with perfect ball retention and progressive passing. Your press resistance was exceptional."
       ],
       improvements: [
-        "Practice quick passing under pressure to improve ball circulation speed",
-        "Work on defensive positioning when transitioning from attack to defense",
-        "Focus on scanning before receiving the ball to make quicker decisions"
+        "Continue developing your long-range shooting to add another dimension to your game",
+        "Work on timing late runs into the box to increase your goal threat from midfield",
+        "Focus on perfecting your pressing triggers to win the ball back even higher up the pitch"
       ]
     },
     CB: {
       positive: [
-        "Your defensive solidity and leadership at the back provided good stability for the team.",
-        "Strong defensive performance with good reading of the game and well-timed interventions.",
-        "Excellent defensive display showing good communication and positional awareness."
+        "Your defensive leadership and commanding presence organized the entire backline flawlessly.",
+        "Elite-level defensive performance with perfect reading of the game and dominant aerial ability.",
+        "Exceptional defensive display showing world-class communication and positional intelligence."
       ],
       improvements: [
-        "Practice long-range passing to improve distribution from the back",
-        "Work on heading technique for both defensive and attacking set pieces",
-        "Focus on staying compact with your defensive partner during transitions"
+        "Continue developing your progressive passing to help initiate attacks from deep positions",
+        "Work on perfecting your timing when stepping out of defense to press high",
+        "Focus on improving your distribution under pressure to maintain possession in tight situations"
       ]
     },
     RW: {
       positive: [
-        "Your pace and attacking threat down the right flank created problems for the opposition.",
-        "Good wing play with effective dribbling and crossing. Your attacking contribution was valuable.",
-        "Strong performance on the wing with good ball-carrying and creative play."
+        "Your pace, skill, and attacking threat down the right flank terrorized their defense all game.",
+        "Outstanding wing play with exceptional dribbling and precise crossing. Your end product was clinical.",
+        "Brilliant performance on the wing with elite ball-carrying and consistent creative output."
       ],
       improvements: [
-        "Practice crossing with both feet to become less predictable in the final third",
-        "Work on tracking back to support your fullback during defensive phases",
-        "Focus on cutting inside with your stronger foot to create shooting opportunities"
+        "Continue perfecting your ability to cut inside and create shooting opportunities",
+        "Work on developing more variety in your crossing to keep defenders guessing",
+        "Focus on timing your defensive tracking to maintain the team's pressing structure"
       ]
     },
     RB: {
       positive: [
-        "Solid defensive performance with good positioning and tackling. Your work rate was commendable.",
-        "Strong defensive display with effective overlapping runs to support attack when possible.",
-        "Good balance between defensive duties and attacking support. Your consistency was key."
+        "Perfect balance between defensive solidity and attacking threat. Your overlapping runs were timed excellently.",
+        "Elite defensive performance with exceptional positioning and crucial attacking contributions.",
+        "Outstanding consistency in both phases, exactly what we expect from a world-class fullback."
       ],
       improvements: [
-        "Practice crossing from wide positions to better support attacking play",
-        "Work on communication with center-backs during defensive transitions",
-        "Focus on timing your forward runs to avoid leaving defensive gaps"
+        "Continue developing your crossing technique from different areas of the pitch",
+        "Work on perfecting your communication with wingers during attacking transitions",
+        "Focus on improving your recovery speed when caught high up the pitch"
       ]
     }
   };

@@ -171,7 +171,11 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
         const actionText = isUpdating ? 'updated' : 'saved';
         const hasAISuggestions = result.data.ai_suggestions;
         
-        let alertMessage = `${playerName}'s stats have been ${actionText}. Overall rating: ${result.data.previous_attributes.overall_rating} → ${result.data.new_attributes.overall_rating}`;
+        // Use the correct response structure
+        const previousOverall = result.data.previous_attributes?.overall_rating || 50;
+        const finalOverall = result.data.final_attributes?.overall_rating || 50;
+        
+        let alertMessage = `${playerName}'s stats have been ${actionText}. Overall rating: ${previousOverall} → ${finalOverall}`;
         
         if (hasAISuggestions) {
           alertMessage += '\n\nAI suggestions have been generated based on your feedback!';

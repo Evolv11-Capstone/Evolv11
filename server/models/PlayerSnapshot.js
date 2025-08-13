@@ -20,9 +20,10 @@ class PlayerSnapshot {
    * @param {number} playerId - The ID of the player
    * @param {number|null} matchId - The ID of the match (null for initial snapshot)
    * @param {Object} attributes - Player attributes at this point in time
+   * @param {Date|string|null} matchDate - Optional match date for timestamp alignment
    * @returns {Promise<PlayerSnapshot>}
    */
-  static async create(playerId, matchId = null, attributes) {
+  static async create(playerId, matchId = null, attributes, matchDate = null) {
     const snapshotData = {
       player_id: playerId,
       match_id: matchId,
@@ -35,6 +36,11 @@ class PlayerSnapshot {
       overall_rating: attributes.overall_rating,
     };
 
+    // If match date is provided, use it for created_at alignment
+    if (matchDate) {
+      snapshotData.created_at = matchDate;
+    }
+
     const [result] = await knex('player_snapshots')
       .insert(snapshotData)
       .returning('*');
@@ -43,29 +49,30 @@ class PlayerSnapshot {
   }
 
   /**
-   * Create an initial snapshot for a newly approved player
+   * Create an initial snapshot for a newly approved player with baseline stats
    * @param {number} playerId - The ID of the player
    * @returns {Promise<PlayerSnapshot>}
    */
   static async createInitialSnapshot(playerId) {
-    // Get current player attributes
-    const player = await knex('players')
-      .where({ id: playerId })
+    // Check if initial snapshot already exists
+    const existingInitialSnapshot = await knex('player_snapshots')
+      .where({ player_id: playerId, match_id: null })
       .first();
 
-    if (!player) {
-      throw new Error(`Player with ID ${playerId} not found`);
+    if (existingInitialSnapshot) {
+      console.log(`Initial snapshot already exists for player ${playerId}`);
+      return new PlayerSnapshot(existingInitialSnapshot);
     }
 
-    // Create snapshot with current attributes (match_id = null for initial)
+    // Create snapshot with baseline attributes of 50 (match_id = null for initial)
     return await PlayerSnapshot.create(playerId, null, {
-      shooting: player.shooting,
-      passing: player.passing,
-      dribbling: player.dribbling,
-      defense: player.defense,
-      physical: player.physical,
-      coach_grade: player.coach_grade || 50,
-      overall_rating: player.overall_rating,
+      shooting: 50,
+      passing: 50,
+      dribbling: 50,
+      defense: 50,
+      physical: 50,
+      coach_grade: 50,
+      overall_rating: 50,
     });
   }
 

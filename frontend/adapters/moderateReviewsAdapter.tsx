@@ -104,7 +104,7 @@ export type StatsSubmissionResponse = {
       coach_grade: number;
       overall_rating: number;
     };
-    new_attributes: {
+    match_attributes: {
       shooting: number;
       passing: number;
       dribbling: number;
@@ -113,7 +113,16 @@ export type StatsSubmissionResponse = {
       coach_grade: number;
       overall_rating: number;
     };
-    growth: {
+    final_attributes: {
+      shooting: number;
+      passing: number;
+      dribbling: number;
+      defense: number;
+      physical: number;
+      coach_grade: number;
+      overall_rating: number;
+    };
+    match_growth: {
       shooting: number;
       passing: number;
       dribbling: number;

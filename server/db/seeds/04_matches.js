@@ -20,12 +20,12 @@ exports.seed = async function (knex) {
   ];
 
   const matches = [];
-  const startDate = new Date("2025-02-07");
-  const endDate = new Date("2025-08-15");
+  const startDate = new Date("2024-08-01");
+  const endDate = new Date("2025-07-28");
   const totalDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
 
-  for (let i = 1; i <= 25; i++) {
-    const matchDay = Math.floor((i - 1) * (totalDays / 24));
+  for (let i = 1; i <= 55; i++) {
+    const matchDay = Math.floor((i - 1) * (totalDays / 54)); // Spread 55 matches over the season
     const matchDate = new Date(startDate.getTime() + matchDay * 24 * 60 * 60 * 1000);
     const opponentIndex = Math.floor(Math.random() * opponents.length);
     
@@ -54,17 +54,17 @@ function generateMatchResult() {
 
   if (random <= 0.75) {
     // 75% chance of win
-    teamScore = Math.floor(Math.random() * 4) + 1; // 1-4 goals
-    opponentScore = Math.floor(Math.random() * teamScore); // 0 to teamScore-1
+    teamScore = Math.floor(Math.random() * 4) + 3; // 3–6 goals
+    opponentScore = Math.floor(Math.random() * 3); // 0–2 goals
   } else if (random <= 0.90) {
     // 15% chance of draw
-    const score = Math.floor(Math.random() * 4); // 0-3
+    const score = Math.floor(Math.random() * 3) + 2; // 2–4 goals each
     teamScore = score;
     opponentScore = score;
   } else {
     // 10% chance of loss
-    opponentScore = Math.floor(Math.random() * 4) + 1; // 1-4 goals
-    teamScore = Math.floor(Math.random() * opponentScore); // 0 to opponentScore-1
+    opponentScore = Math.floor(Math.random() * 4) + 3; // 3–6 goals
+    teamScore = Math.floor(Math.random() * 3); // 0–2 goals
   }
 
   return { teamScore, opponentScore };

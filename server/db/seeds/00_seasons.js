@@ -7,10 +7,10 @@ exports.seed = async function (knex) {
   
   await knex("seasons").insert([
     {
-      name: "Season 2025",
+      name: "Season 2024-25",
       team_id: 1,
-      start_date: "2025-02-07",
-      end_date: "2025-08-15",
+      start_date: "2024-08-01",
+      end_date: "2025-07-28",
       created_at: knex.fn.now(),
     },
   ]);
