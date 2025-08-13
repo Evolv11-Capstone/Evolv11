@@ -8,4 +8,8 @@
 - AI Integration: Gemini API
 - Cloud Services: AWS S3 bucket
 
+## Demo Video
+
+- [App Demo Video](https://youtube.com/shorts/LHIprlK86v8)
+
 
