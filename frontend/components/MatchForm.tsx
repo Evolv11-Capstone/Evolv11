@@ -294,15 +294,19 @@ const MatchForm = ({ visible, selectedSeason, activeTeamId, onClose, onMatchCrea
                               <Text style={styles.datePickerButton}>Done</Text>
                             </TouchableOpacity>
                           </View>
-                          <DateTimePicker
-                            value={tempMatchDate}
-                            mode="date"
-                            display="spinner"
-                            onChange={handleDateChange}
-                            style={styles.datePicker}
-                            minimumDate={selectedSeason ? new Date(selectedSeason.start_date) : new Date(1900, 0, 1)}
-                            maximumDate={selectedSeason ? new Date(selectedSeason.end_date) : new Date(2100, 11, 31)}
-                          />
+                          <View style={{ backgroundColor: '#ffffff', padding: 10 }}>
+                            <DateTimePicker
+                              value={tempMatchDate}
+                              mode="date"
+                              display="spinner"
+                              onChange={handleDateChange}
+                              style={[styles.datePicker, { backgroundColor: '#ffffff' }]}
+                              minimumDate={selectedSeason ? new Date(selectedSeason.start_date) : new Date(1900, 0, 1)}
+                              maximumDate={selectedSeason ? new Date(selectedSeason.end_date) : new Date(2100, 11, 31)}
+                              textColor="#000000"
+                              accentColor="#1a4d3a"
+                            />
+                          </View>
                         </View>
                       </View>
                     </Modal>
@@ -482,9 +486,10 @@ const styles = StyleSheet.create({
 
   datePickerContainer: {
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     paddingBottom: 20,
+    minHeight: 320,
   },
 
   datePickerHeader: {
@@ -512,6 +517,8 @@ const styles = StyleSheet.create({
 
   datePicker: {
     backgroundColor: '#ffffff',
+    height: 250,
+    width: '100%',
   },
 
   dateInputError: {

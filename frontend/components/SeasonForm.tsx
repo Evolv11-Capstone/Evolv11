@@ -38,6 +38,7 @@ const SeasonForm = ({ activeTeamId, onSeasonCreated }: SeasonFormProps) => {
   };
 
   const handleStartDateChange = (event: any, selectedDate?: Date) => {
+    console.log('Start date picker event:', event, selectedDate); // Debug log
     // Only update temporary state, don't auto-close or commit changes
     if (selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime())) {
       setTempStartDate(selectedDate);
@@ -45,6 +46,7 @@ const SeasonForm = ({ activeTeamId, onSeasonCreated }: SeasonFormProps) => {
   };
 
   const handleEndDateChange = (event: any, selectedDate?: Date) => {
+    console.log('End date picker event:', event, selectedDate); // Debug log
     // Only update temporary state, don't auto-close or commit changes
     if (selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime())) {
       setTempEndDate(selectedDate);
@@ -52,12 +54,14 @@ const SeasonForm = ({ activeTeamId, onSeasonCreated }: SeasonFormProps) => {
   };
 
   const openStartDatePicker = () => {
+    console.log('Opening start date picker'); // Debug log
     // Initialize temp state with current value
     setTempStartDate(startDate);
     setShowStartDatePicker(true);
   };
 
   const openEndDatePicker = () => {
+    console.log('Opening end date picker'); // Debug log
     // Initialize temp state with current value
     setTempEndDate(endDate);
     setShowEndDatePicker(true);
@@ -209,15 +213,19 @@ const SeasonForm = ({ activeTeamId, onSeasonCreated }: SeasonFormProps) => {
                       <Text style={styles.datePickerButton}>Done</Text>
                     </TouchableOpacity>
                   </View>
-                  <DateTimePicker
-                    value={tempStartDate}
-                    mode="date"
-                    display="spinner"
-                    onChange={handleStartDateChange}
-                    style={styles.datePicker}
-                    minimumDate={new Date(1900, 0, 1)}
-                    maximumDate={new Date(2100, 11, 31)}
-                  />
+                  <View style={{ backgroundColor: '#ffffff', padding: 10 }}>
+                    <DateTimePicker
+                      value={tempStartDate}
+                      mode="date"
+                      display="spinner"
+                      onChange={handleStartDateChange}
+                      style={[styles.datePicker, { backgroundColor: '#ffffff' }]}
+                      minimumDate={new Date(1900, 0, 1)}
+                      maximumDate={new Date(2100, 11, 31)}
+                      textColor="#000000"
+                      accentColor="#1a4d3a"
+                    />
+                  </View>
                 </View>
               </View>
             </Modal>
@@ -227,8 +235,9 @@ const SeasonForm = ({ activeTeamId, onSeasonCreated }: SeasonFormProps) => {
               mode="date"
               display="default"
               onChange={(event, selectedDate) => {
+                console.log('Android date picker change:', event.type, selectedDate);
                 // For Android, commit immediately since it uses native dialog
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setStartDate(selectedDate);
                 }
                 setShowStartDatePicker(false);
@@ -259,15 +268,19 @@ const SeasonForm = ({ activeTeamId, onSeasonCreated }: SeasonFormProps) => {
                       <Text style={styles.datePickerButton}>Done</Text>
                     </TouchableOpacity>
                   </View>
-                  <DateTimePicker
-                    value={tempEndDate}
-                    mode="date"
-                    display="spinner"
-                    onChange={handleEndDateChange}
-                    style={styles.datePicker}
-                    minimumDate={new Date(1900, 0, 1)}
-                    maximumDate={new Date(2100, 11, 31)}
-                  />
+                  <View style={{ backgroundColor: '#ffffff', padding: 10 }}>
+                    <DateTimePicker
+                      value={tempEndDate}
+                      mode="date"
+                      display="spinner"
+                      onChange={handleEndDateChange}
+                      style={[styles.datePicker, { backgroundColor: '#ffffff' }]}
+                      minimumDate={new Date(1900, 0, 1)}
+                      maximumDate={new Date(2100, 11, 31)}
+                      textColor="#000000"
+                      accentColor="#1a4d3a"
+                    />
+                  </View>
                 </View>
               </View>
             </Modal>
@@ -277,8 +290,9 @@ const SeasonForm = ({ activeTeamId, onSeasonCreated }: SeasonFormProps) => {
               mode="date"
               display="default"
               onChange={(event, selectedDate) => {
+                console.log('Android date picker change:', event.type, selectedDate);
                 // For Android, commit immediately since it uses native dialog
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setEndDate(selectedDate);
                 }
                 setShowEndDatePicker(false);
@@ -413,9 +427,10 @@ const styles = StyleSheet.create({
 
   datePickerContainer: {
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     paddingBottom: 20,
+    minHeight: 320,
   },
 
   datePickerHeader: {
@@ -443,6 +458,8 @@ const styles = StyleSheet.create({
 
   datePicker: {
     backgroundColor: '#ffffff',
+    height: 250,
+    width: '100%',
   },
 });
 

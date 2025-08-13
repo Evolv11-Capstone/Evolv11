@@ -224,6 +224,8 @@ const recalculateSubsequentSnapshots = async (trx, playerId, currentMatchId, cur
 
     // Process each future match chronologically
     for (const review of futureMatchReviews) {
+      console.log(`🔄 Processing match ${review.match_id} (${review.match_date}) for player ${playerId}`);
+      
       const matchStats = {
         goals: review.goals || 0,
         assists: review.assists || 0,
