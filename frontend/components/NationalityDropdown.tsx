@@ -4,6 +4,7 @@ import DropDownPicker from 'react-native-dropdown-picker';
 
 interface NationalityDropdownProps {
   onSelect: (nationality: string) => void;
+  initialValue?: string;
 }
 
 // Converts ISO country code to emoji flag
@@ -12,7 +13,7 @@ const countryCodeToEmoji = (countryCode: string) =>
     .toUpperCase()
     .replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
 
-export default function NationalityDropdown({ onSelect }: NationalityDropdownProps) {
+export default function NationalityDropdown({ onSelect, initialValue }: NationalityDropdownProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<string | null>(null);
   const [items, setItems] = useState<
@@ -25,9 +26,12 @@ export default function NationalityDropdown({ onSelect }: NationalityDropdownPro
   useEffect(() => {
     const fetchCountries = async () => {
       try {
+        console.log('Fetching countries...');
         const res = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2');
+        console.log('Response status:', res.status);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
+        console.log('Countries data length:', data.length);
 
         const countryOptions = data.map((country: any) => {
           const emoji = country.cca2
@@ -43,6 +47,7 @@ export default function NationalityDropdown({ onSelect }: NationalityDropdownPro
         countryOptions.sort((a: { label: string }, b: { label: string }) =>
           a.label.localeCompare(b.label)
         );
+        console.log('Processed countries:', countryOptions.length);
         setItems(countryOptions);
         setOriginalItems(countryOptions);
       } catch (err) {
@@ -54,8 +59,24 @@ export default function NationalityDropdown({ onSelect }: NationalityDropdownPro
   }, []);
 
   useEffect(() => {
-    if (value) onSelect(value);
-  }, [value, onSelect]);
+    if (value && value !== initialValue) {
+      onSelect(value);
+    }
+  }, [value]);
+
+  // Set initial value when provided
+  useEffect(() => {
+    if (initialValue && !value) {
+      setValue(initialValue);
+    }
+  }, [initialValue]);
+
+  // Set initial value when component mounts
+  useEffect(() => {
+    if (initialValue) {
+      setValue(initialValue);
+    }
+  }, [initialValue]);
 
   const handleSearch = (searchText: string) => {
     if (!searchText.trim()) {

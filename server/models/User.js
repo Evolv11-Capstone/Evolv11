@@ -99,29 +99,59 @@ class User {
     // Prepare dynamic SQL SET clause
     const fields = [];
     const values = [];
-    let index = 1;
 
     for (const [key, val] of Object.entries(updates)) {
       if (val !== undefined) {
-        fields.push(`${key} = $${index++}`);
+        fields.push(`${key} = ?`);
         values.push(val);
       }
     }
 
     if (fields.length === 0) return null; // No update fields provided
 
+    // Add the ID for the WHERE clause
+    values.push(id);
+
     // Finalize and run query
     const query = `
       UPDATE users
       SET ${fields.join(', ')}
-      WHERE id = $${index}
+      WHERE id = ?
       RETURNING *
     `;
-    values.push(id);
+
+    console.log('SQL Query:', query);
+    console.log('SQL Values:', values);
 
     const result = await knex.raw(query, values);
     const updated = result.rows[0];
     return updated ? new User(updated) : null;
+  }
+
+  /**
+   * Update a user's password
+   * @param {number} id - ID of user to update
+   * @param {string} newPassword - New plain text password
+   * @returns {Promise<boolean>} - Success status
+   */
+  static async updatePassword(id, newPassword) {
+    try {
+      // Hash the new password
+      const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+      
+      // Update password in database
+      const result = await knex.raw(`
+        UPDATE users 
+        SET password_hash = ? 
+        WHERE id = ?
+        RETURNING id
+      `, [passwordHash, id]);
+
+      return result.rows.length > 0;
+    } catch (error) {
+      console.error('Error updating password:', error);
+      return false;
+    }
   }
 
   /**

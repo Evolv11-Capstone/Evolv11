@@ -49,3 +49,9 @@ export type UpdateUserInput = {
   preferred_position?: string;           // Optional update for preferred position
   image_url?: string;                    // Optional update for profile image
 };
+
+// Input for password change
+export type PasswordChangeInput = {
+  currentPassword: string;
+  newPassword: string;
+};

@@ -9,6 +9,7 @@ import {
   NewUserInput,
   ApiResponse,
   UpdateUserInput,
+  PasswordChangeInput,
 } from '../types/userTypes';
 
 // Load base API URL from environment variables
@@ -43,5 +44,18 @@ export const updateUser = async (
 ) => {
   const url = `${API_BASE_URL}/users/${id}`;
   const options = getPatchOptions(userData);
+  return await fetchHandler(url, options);
+};
+
+/**
+ * Update a user's password
+ * Backend route: PATCH /api/users/:id/password
+ */
+export const updatePassword = async (
+  id: number,
+  passwordData: PasswordChangeInput
+) => {
+  const url = `${API_BASE_URL}/users/${id}/password`;
+  const options = getPatchOptions(passwordData);
   return await fetchHandler(url, options);
 };

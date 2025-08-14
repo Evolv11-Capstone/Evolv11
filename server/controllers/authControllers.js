@@ -1,5 +1,6 @@
 // Import the User model to interact with the users table
 const User = require('../models/User');
+const emailService = require('../services/emailService');
 
 ///////////////////////////////
 // REGISTER USER
@@ -43,6 +44,16 @@ exports.registerUser = async (req, res) => {
     //  Store session for persistent login
     req.session.userId = user.id;
     req.session.role = user.role;
+
+    // Send welcome email asynchronously (don't block response)
+    setImmediate(async () => {
+      try {
+        await emailService.sendWelcomeEmail(user);
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        // Don't fail the registration if email fails
+      }
+    });
 
     //  Return the created user and success flag to the frontend
     res.send({ success: true, user });

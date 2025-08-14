@@ -16,6 +16,7 @@ interface UserContextType {
   setUser: React.Dispatch<React.SetStateAction<User | null>>; // Setter for user state
   loading: boolean; // Whether we are still checking session/loading
   logout: () => void; // Logout method to clear session both server- and client-side
+  refreshUser: () => Promise<void>; // Method to refresh user data from server
 }
 
 // Create a context with undefined initial value
@@ -47,6 +48,19 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setUser(null); // Reset user in context
       await AsyncStorage.removeItem('evolv11_user'); // Remove from local storage
+    }
+  };
+
+  // Function to refresh user data from server
+  const refreshUser = async () => {
+    try {
+      const [data, error]: [ApiResponse | null, Error | null] = await getSessionUser();
+      if (data?.success && data.user) {
+        setUser(data.user);
+        await AsyncStorage.setItem('evolv11_user', JSON.stringify(data.user));
+      }
+    } catch (err) {
+      console.error('Failed to refresh user:', err);
     }
   };
 
@@ -83,7 +97,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Wrap everything in the context provider and expose the values
   return (
-    <UserContext.Provider value={{ user, setUser, loading, logout }}>
+    <UserContext.Provider value={{ user, setUser, loading, logout, refreshUser }}>
       {children}
     </UserContext.Provider>
   );

@@ -60,6 +60,7 @@ const matchRoutes = require('./routes/matchRoutes');
 const lineupRoutes = require('./routes/lineupRoutes');
 const moderateReviewRoutes = require('./routes/moderateReviewRoutes');
 const seasonRoutes = require('./routes/seasonRoutes');
+const webhookRoutes = require('./routes/webhooks');
 
 ///////////////////////////////
 // Route Mounting
@@ -67,6 +68,9 @@ const seasonRoutes = require('./routes/seasonRoutes');
 
 // Public auth endpoints
 app.use('/api/auth', authRoutes);
+
+// Email service webhooks (no auth required)
+app.use('/api/webhooks', webhookRoutes);
 
 // Authenticated user & data access
 app.use('/api/users', checkAuthentication, userRoutes);
