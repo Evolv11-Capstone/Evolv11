@@ -18,6 +18,7 @@ import {
 } from '../../../adapters/playerAdapters';
 import { getUserById } from '../../../adapters/userAdapters';
 import PlayerCard from '../../../components/PlayerCard';
+import GoalieCard from '../../../components/GoalieCard';
 import PlayerStatsSummary from '../../../components/PlayerStatsSummary';
 import PerNinetyMinutesExpectations from '../../../components/PerNinetyMinutesExpectations';
 import GrowthChart from '../../../components/GrowthChart';
@@ -71,6 +72,11 @@ export default function PlayerDetailScreen() {
             chances_created: Number(stats.chances_created),
             minutes_played: Number(stats.minutes_played),
             coach_rating: Number(stats.coach_rating),
+            // Goalkeeper-specific stats
+            successful_goalie_kicks: Number(stats.successful_goalie_kicks || 0),
+            failed_goalie_kicks: Number(stats.failed_goalie_kicks || 0),
+            successful_goalie_throws: Number(stats.successful_goalie_throws || 0),
+            failed_goalie_throws: Number(stats.failed_goalie_throws || 0),
           });
         }
       } catch (err) {
@@ -182,22 +188,41 @@ export default function PlayerDetailScreen() {
       </View>
 
       <View style={styles.cardWrapper}>
-        <PlayerCard
-          imageUrl={player.image_url ?? ''}
-          name={player.name}
-          nationality={player.nationality ?? 'Unknown'}
-          position={player.position ?? 'N/A'}
-          overallRating={player.overall_rating ?? 50}
-          stats={{
-            shooting: player.shooting ?? 0,
-            passing: player.passing ?? 0,
-            dribbling: player.dribbling ?? 0,
-            defense: player.defense ?? 0,
-            physical: player.physical ?? 0,
-            coachGrade: player.coach_grade,
-          }}
-          onPositionChange={handlePositionChange}
-        />
+        {player.position === 'GK' ? (
+          <GoalieCard
+            imageUrl={player.image_url ?? ''}
+            name={player.name}
+            nationality={player.nationality ?? 'Unknown'}
+            position={player.position ?? 'N/A'}
+            overallRating={player.overall_rating ?? 50}
+            stats={{
+              // Goalkeeper-specific stats
+              diving: player.defense ?? 50,      // DIV - use defense as placeholder
+              handling: player.physical ?? 50,   // HAN - use physical as placeholder  
+              kicking: player.shooting ?? 50,    // KIC - use shooting as placeholder
+              passing: player.passing ?? 50,     // PAS - use existing passing stat
+              coachGrade: player.coach_grade,
+            }}
+            onPositionChange={handlePositionChange}
+          />
+        ) : (
+          <PlayerCard
+            imageUrl={player.image_url ?? ''}
+            name={player.name}
+            nationality={player.nationality ?? 'Unknown'}
+            position={player.position ?? 'N/A'}
+            overallRating={player.overall_rating ?? 50}
+            stats={{
+              shooting: player.shooting ?? 0,
+              passing: player.passing ?? 0,
+              dribbling: player.dribbling ?? 0,
+              defense: player.defense ?? 0,
+              physical: player.physical ?? 0,
+              coachGrade: player.coach_grade,
+            }}
+            onPositionChange={handlePositionChange}
+          />
+        )}
       </View>
 
 

@@ -25,10 +25,13 @@ exports.up = function (knex) {
 
     // Main performance attributes, updated based on match data
     table.integer("shooting").defaultTo(50);
-    table.integer("passing").defaultTo(50);
+    table.integer("passing").defaultTo(50); // player or goalie passing ability
     table.integer("dribbling").defaultTo(50);
     table.integer("defense").defaultTo(50);
     table.integer("physical").defaultTo(50);
+    table.integer("diving").defaultTo(50); // Goalkeeper diving ability
+    table.integer("handling").defaultTo(50); // Goalkeeper handling ability
+    table.integer("kicking").defaultTo(50); // Goalkeeper kicking ability
     table.integer("coach_grade").defaultTo(50); // Coach subjective rating
     table.integer("overall_rating").defaultTo(50); // Calculated average of core attributes
 

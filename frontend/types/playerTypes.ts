@@ -27,6 +27,11 @@ export interface ModerateStats {
   chances_created: number;
   minutes_played: number;
   coach_rating: number;
+  // Goalkeeper-specific stats
+  successful_goalie_kicks?: number;
+  failed_goalie_kicks?: number;
+  successful_goalie_throws?: number;
+  failed_goalie_throws?: number;
 }
 
 export interface UpdatePositionPayload {
