@@ -8,33 +8,35 @@ import {
   Text, 
   StyleSheet, 
   SafeAreaView, 
-  Image, 
   ScrollView, 
   TextInput, 
   TouchableOpacity, 
   Alert,
-  Modal,
-  Platform
+  Platform,
+  Image
 } from 'react-native'; 
 // UI components for layout, display, and interactions
-
-import * as ImagePicker from 'expo-image-picker';
-// For selecting images from device library
-
-import DropDownPicker from 'react-native-dropdown-picker';
-// For position selection dropdown
 
 import { Picker } from '@react-native-picker/picker';
 // For height selection picker
 
+import * as ImagePicker from 'expo-image-picker';
+// For image selection
+
+import { uploadPlayerImage } from '../../../adapters/imageUploadAdapter';
+// For image upload functionality
+
 import NationalityDropdown from '../../../components/NationalityDropdown';
 // For nationality selection dropdown
 
-import LogoutButton from '../../../components/LogoutButton'; 
-// Import the logout component
+import ChangePasswordModal from '../../../components/ChangePasswordModal';
+// For password change functionality
 
-import { useUser } from '../../contexts/UserContext'; 
+import { useUser } from '../../contexts/UserContext';
 // Import user context to access user information
+
+import { useActiveTeam } from '../../contexts/ActiveTeamContext';
+// Import active team context
 
 import { calculateAge } from '../../../utils/dateUtils';
 // Import utility function to calculate age from birthday
@@ -42,30 +44,19 @@ import { calculateAge } from '../../../utils/dateUtils';
 import { updateUser, updatePassword } from '../../../adapters/userAdapters';
 // Import user update functions
 
-import { uploadPlayerImage } from '../../../adapters/imageUploadAdapter';
-// Import image upload function
+import { logoutUser } from '../../../adapters/authAdapters';
+// Import logout function
+
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../../types/navigationTypes';
+// Import navigation types for logout
 
 function formatDate(dateString?: string) {
   if (!dateString) return 'Unknown';
   const date = new Date(dateString);
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
-
-// Position options for players
-const POSITION_OPTIONS = [
-  { label: 'Goalkeeper (GK)', value: 'GK' },
-  { label: 'Left Back (LB)', value: 'LB' },
-  { label: 'Center Back (CB)', value: 'CB' },
-  { label: 'Right Back (RB)', value: 'RB' },
-  { label: 'Defensive Midfielder (CDM)', value: 'CDM' },
-  { label: 'Central Midfielder (CM)', value: 'CM' },
-  { label: 'Attacking Midfielder (CAM)', value: 'CAM' },
-  { label: 'Left Midfielder (LM)', value: 'LM' },
-  { label: 'Right Midfielder (RM)', value: 'RM' },
-  { label: 'Left Winger (LW)', value: 'LW' },
-  { label: 'Right Winger (RW)', value: 'RW' },
-  { label: 'Striker (ST)', value: 'ST' },
-];
 
 // Height options for players (matching CreateNewUser.tsx)
 const HEIGHT_OPTIONS = [
@@ -95,7 +86,9 @@ const HEIGHT_OPTIONS = [
 
 // Screen component that shows user account settings
 export default function AccountSettingsScreen() {
-  const { user, refreshUser } = useUser();
+  const { user, refreshUser, setUser } = useUser();
+  const { setActiveTeamId, setActiveTeamName } = useActiveTeam();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   
   // Editing states
   const [isEditing, setIsEditing] = useState(false);
@@ -104,23 +97,18 @@ export default function AccountSettingsScreen() {
     height: user?.height || '',
     preferred_position: user?.preferred_position || '',
     nationality: user?.nationality || '',
-    image_url: user?.image_url || ''
+    ...(user?.role === 'player' && { image_url: user?.image_url || '' })
   });
   
   // Password change states
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
   
-  // Dropdown states for position picker
-  const [positionDropdownOpen, setPositionDropdownOpen] = useState(false);
+  // Image states for players
+  const [image, setImage] = useState<string | null>(user?.role === 'player' ? user?.image_url || null : null);
+  const [uploading, setUploading] = useState(false);
   
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -129,8 +117,13 @@ export default function AccountSettingsScreen() {
         height: user.height || '',
         preferred_position: user.preferred_position || '',
         nationality: user.nationality || '',
-        image_url: user.image_url || ''
+        ...(user.role === 'player' && { image_url: user.image_url || '' })
       });
+      
+      // Set image state for players
+      if (user.role === 'player') {
+        setImage(user.image_url || null);
+      }
     }
   }, [user]);
 
@@ -139,17 +132,19 @@ export default function AccountSettingsScreen() {
     setEditedUser(prev => ({ ...prev, nationality: selectedNationality }));
   }, []);
 
+  // Image picker handler for players
   const handleImagePicker = async () => {
+    if (user?.role !== 'player') return;
+
     try {
-      // Request permission to access media library
+      // Request permission
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'Please allow access to your photo library to update your profile image.');
+        Alert.alert('Permission Required', 'Please allow access to your photos to upload a profile picture.');
         return;
       }
 
-      // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -158,23 +153,11 @@ export default function AccountSettingsScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        setIsUploadingImage(true);
-        
-        // Upload image to S3
-        const [imageUrl, uploadError] = await uploadPlayerImage(result.assets[0].uri);
-        
-        if (uploadError || !imageUrl) {
-          Alert.alert('Upload Failed', 'Failed to upload image. Please try again.');
-          return;
-        }
-
-        // Update local state
-        setEditedUser(prev => ({ ...prev, image_url: imageUrl }));
+        setImage(result.assets[0].uri);
       }
     } catch (error) {
+      console.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to select image. Please try again.');
-    } finally {
-      setIsUploadingImage(false);
     }
   };
 
@@ -200,15 +183,33 @@ export default function AccountSettingsScreen() {
         if (editedUser.preferred_position !== user.preferred_position && editedUser.preferred_position !== '') {
           updateData.preferred_position = editedUser.preferred_position;
         }
-        
-        if (editedUser.image_url !== user.image_url) {
-          updateData.image_url = editedUser.image_url;
-        }
       }
       
       // Nationality field for all users
       if (editedUser.nationality !== user.nationality && editedUser.nationality !== '') {
         updateData.nationality = editedUser.nationality;
+      }
+
+      // Handle image upload for players
+      if (user.role === 'player' && image && image !== user.image_url) {
+        try {
+          setUploading(true);
+          const [imageUrl, imageError] = await uploadPlayerImage(image);
+          
+          if (imageError) {
+            Alert.alert('Error', imageError.message || 'Failed to upload image');
+            return;
+          }
+          
+          if (imageUrl) {
+            updateData.image_url = imageUrl;
+          }
+        } catch (error) {
+          Alert.alert('Error', 'Failed to upload image. Please try again.');
+          return;
+        } finally {
+          setUploading(false);
+        }
       }
 
       // Check if we have any changes to save
@@ -241,51 +242,7 @@ export default function AccountSettingsScreen() {
     }
   };
 
-  const handlePasswordChange = async () => {
-    if (!user) return;
 
-    // Validate inputs
-    if (!passwordData.currentPassword || !passwordData.newPassword) {
-      Alert.alert('Error', 'Please fill in all password fields.');
-      return;
-    }
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      Alert.alert('Error', 'New passwords do not match.');
-      return;
-    }
-
-    if (passwordData.newPassword.length < 6) {
-      Alert.alert('Error', 'New password must be at least 6 characters long.');
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-
-      const [response, error] = await updatePassword(user.id, {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      });
-
-      if (error) {
-        Alert.alert('Error', error.message || 'Failed to update password');
-        return;
-      }
-
-      if (response?.success) {
-        setIsChangingPassword(false);
-        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        Alert.alert('Success', 'Password updated successfully!');
-      } else {
-        Alert.alert('Error', 'Failed to update password');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update password. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleCancelEdit = () => {
     if (user) {
@@ -294,10 +251,50 @@ export default function AccountSettingsScreen() {
         height: user.height || '',
         preferred_position: user.preferred_position || '',
         nationality: user.nationality || '',
-        image_url: user.image_url || ''
+        ...(user.role === 'player' && { image_url: user.image_url || '' })
       });
     }
     setIsEditing(false);
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to log out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const [data, error] = await logoutUser();
+
+              if (error) {
+                Alert.alert('Logout Failed', error.message);
+                return;
+              }
+
+              // Clear both user and active team from global state
+              setUser(null);
+              setActiveTeamId(null);
+              setActiveTeamName(undefined);
+
+              // Reset navigation to unauthenticated state
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Landing' }],
+              });
+            } catch (error) {
+              Alert.alert('Error', 'Failed to log out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -316,48 +313,53 @@ export default function AccountSettingsScreen() {
               {/* Profile Card */}
               <View style={styles.profileCard}>
                 
-                {/* Player Image Section - Only for players */}
-                {user.role === 'player' && (
-                  <View style={styles.imageSection}>
-                    <TouchableOpacity 
-                      style={styles.imageContainer} 
-                      onPress={isEditing ? handleImagePicker : undefined}
-                      disabled={!isEditing || isUploadingImage}
-                      activeOpacity={isEditing ? 0.8 : 1}
-                    >
-                      <View style={styles.imageWrapper}>
-                        {editedUser.image_url ? (
-                          <Image source={{ uri: editedUser.image_url }} style={styles.profileImage} />
-                        ) : (
-                          <View style={styles.placeholderImage}>
-                            <Text style={styles.placeholderText}>Add Photo</Text>
-                          </View>
-                        )}
-                        {isEditing && (
-                          <View style={styles.imageOverlay}>
-                            <Text style={styles.imageOverlayText}>
-                              {isUploadingImage ? 'Uploading...' : 'Change Photo'}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                    
-                    {/* Role Badge */}
+                {/* Coach Header */}
+                {user.role === 'coach' && (
+                  <View style={styles.playerHeader}>
                     <View style={styles.roleBadge}>
-                      <Text style={styles.roleBadgeText}>PLAYER</Text>
+                      <Text style={styles.roleBadgeText}>COACH</Text>
                     </View>
                   </View>
                 )}
 
-                {/* Coach Header */}
-                {user.role === 'coach' && (
-                  <View style={styles.coachHeader}>
-                    <View style={styles.coachIconContainer}>
-                      <Text style={styles.coachIcon}>👨‍💼</Text>
+                {/* Player Header with Image */}
+                {user.role === 'player' && (
+                  <View style={styles.playerHeader}>
+                    {/* Profile Image Section */}
+                    <View style={styles.imageSection}>
+                      <View style={styles.imageContainer}>
+                        <TouchableOpacity 
+                          style={styles.imageWrapper}
+                          onPress={handleImagePicker}
+                          disabled={uploading}
+                        >
+                          {image ? (
+                            <>
+                              <Image source={{ uri: image }} style={styles.profileImage} />
+                              {isEditing && (
+                                <View style={styles.imageOverlay}>
+                                  <Text style={styles.imageOverlayText}>Tap to replace</Text>
+                                </View>
+                              )}
+                            </>
+                          ) : (
+                            <View style={styles.placeholderImage}>
+                              <Text style={styles.placeholderText}>
+                                {isEditing ? 'Tap to add photo' : 'Tap to add photo'}
+                              </Text>
+                            </View>
+                          )}
+                          {uploading && (
+                            <View style={styles.imageOverlay}>
+                              <Text style={styles.imageOverlayText}>Uploading...</Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      </View>
                     </View>
+                    
                     <View style={styles.roleBadge}>
-                      <Text style={styles.roleBadgeText}>COACH</Text>
+                      <Text style={styles.roleBadgeText}>PLAYER</Text>
                     </View>
                   </View>
                 )}
@@ -428,27 +430,28 @@ export default function AccountSettingsScreen() {
                       <View style={styles.fieldContainer}>
                         <Text style={styles.fieldLabel}>Preferred Position</Text>
                         {isEditing ? (
-                          <View style={styles.dropdownWrapper}>
-                            <DropDownPicker
-                              open={positionDropdownOpen}
-                              value={editedUser.preferred_position}
-                              items={POSITION_OPTIONS}
-                              setOpen={setPositionDropdownOpen}
-                              setValue={(callback) => {
-                                const value = typeof callback === 'function' ? callback(editedUser.preferred_position) : callback;
-                                setEditedUser(prev => ({ ...prev, preferred_position: value }));
-                              }}
-                              style={styles.dropdown}
-                              dropDownContainerStyle={styles.dropdownContainer}
-                              textStyle={styles.dropdownText}
-                              placeholder="Select your position"
-                              searchable={true}
-                              searchPlaceholder="Search positions..."
-                              placeholderStyle={styles.dropdownPlaceholder}
-                              listMode="MODAL"
-                              modalTitle="Select Position"
-                              modalAnimationType="slide"
-                            />
+                          <View style={styles.pickerWrapper}>
+                            <Picker
+                              selectedValue={editedUser.preferred_position || ''}
+                              onValueChange={(value) => setEditedUser(prev => ({ ...prev, preferred_position: value }))}
+                              style={Platform.OS === 'ios' ? styles.pickerIOS : styles.picker}
+                              itemStyle={Platform.OS === 'ios' ? styles.pickerItemIOS : undefined}
+                            >
+                              <Picker.Item label="Select position..." value="" />
+                              <Picker.Item label="Goalkeeper (GK)" value="GK" />
+                              <Picker.Item label="Left Back (LB)" value="LB" />
+                              <Picker.Item label="Center Back (CB)" value="CB" />
+                              <Picker.Item label="Right Back (RB)" value="RB" />
+                              <Picker.Item label="Defensive Midfielder (CDM)" value="CDM" />
+                              <Picker.Item label="Left Midfielder (LM)" value="LM" />
+                              <Picker.Item label="Center Midfielder (CM)" value="CM" />
+                              <Picker.Item label="Right Midfielder (RM)" value="RM" />
+                              <Picker.Item label="Attacking Midfielder (CAM)" value="CAM" />
+                              <Picker.Item label="Left Winger (LW)" value="LW" />
+                              <Picker.Item label="Right Winger (RW)" value="RW" />
+                              <Picker.Item label="Striker (ST)" value="ST" />
+                              <Picker.Item label="Center Forward (CF)" value="CF" />
+                            </Picker>
                           </View>
                         ) : (
                           <Text style={styles.fieldValue}>{user.preferred_position || 'Not specified'}</Text>
@@ -526,92 +529,25 @@ export default function AccountSettingsScreen() {
 
               {/* Logout Section */}
               <View style={styles.logoutSection}>
-                <LogoutButton />
+                <TouchableOpacity 
+                  style={styles.logoutButton} 
+                  onPress={handleLogout}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.logoutButtonText}>Log Out</Text>
+                </TouchableOpacity>
               </View>
             </>
           )}
         </View>
       </ScrollView>
 
-      {/* Password Change Modal */}
-      <Modal
+      {/* Change Password Modal */}
+      <ChangePasswordModal
         visible={isChangingPassword}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setIsChangingPassword(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Change Password</Text>
-              <Text style={styles.modalSubtitle}>Enter your current password and choose a new one</Text>
-            </View>
-            
-            <View style={styles.modalForm}>
-              <View style={styles.modalFieldContainer}>
-                <Text style={styles.modalFieldLabel}>Current Password</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Enter current password"
-                  placeholderTextColor="#9ca3af"
-                  secureTextEntry
-                  value={passwordData.currentPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, currentPassword: text }))}
-                />
-              </View>
-              
-              <View style={styles.modalFieldContainer}>
-                <Text style={styles.modalFieldLabel}>New Password</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Enter new password"
-                  placeholderTextColor="#9ca3af"
-                  secureTextEntry
-                  value={passwordData.newPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, newPassword: text }))}
-                />
-              </View>
-              
-              <View style={styles.modalFieldContainer}>
-                <Text style={styles.modalFieldLabel}>Confirm New Password</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Confirm new password"
-                  placeholderTextColor="#9ca3af"
-                  secureTextEntry
-                  value={passwordData.confirmPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, confirmPassword: text }))}
-                />
-              </View>
-            </View>
-            
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={[styles.modalPrimaryButton, isSaving && styles.disabledButton]} 
-                onPress={handlePasswordChange}
-                disabled={isSaving}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.modalPrimaryButtonText}>
-                  {isSaving ? 'Updating...' : 'Update Password'}
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.modalSecondaryButton} 
-                onPress={() => {
-                  setIsChangingPassword(false);
-                  setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-                }}
-                disabled={isSaving}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setIsChangingPassword(false)}
+        userId={user?.id || 0}
+      />
     </SafeAreaView>
   );
 }
@@ -654,7 +590,12 @@ const styles = StyleSheet.create({
   // Profile Card
   profileCard: {
     backgroundColor: '#fff',
-    borderRadius: 24,
+    borderLeftWidth: 3,
+    borderLeftColor: '#d4b896',
+    
+    borderTopWidth: 6,
+    borderTopColor: '#1a4d3a',
+    
     padding: 32,
     marginBottom: 24,
     shadowColor: '#000',
@@ -667,10 +608,16 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
 
+  // Player Header
+  playerHeader: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+
   // Image Section
   imageSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 16,
   },
   imageContainer: {
     position: 'relative',
@@ -732,41 +679,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a4d3a',
     paddingHorizontal: 16,
     paddingVertical: 6,
-    borderRadius: 20,
+    
   },
   roleBadgeText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1.2,
-  },
-
-  // Coach Header
-  coachHeader: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  coachIconContainer: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 4,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  coachIcon: {
-    fontSize: 48,
   },
 
   // Info Grid
@@ -810,38 +729,11 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // Dropdown Styling
-  dropdownWrapper: {
-    marginTop: 8,
-  },
-  dropdown: {
-    borderColor: '#e0e0e0',
-    borderRadius: 12,
-    backgroundColor: '#fafafa',
-    borderWidth: 1,
-    minHeight: 48,
-  },
-  dropdownContainer: {
-    borderColor: '#e0e0e0',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  dropdownText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000',
-  },
-  dropdownPlaceholder: {
-    color: '#999',
-    fontSize: 16,
-  },
-
-  // Picker Styling (for height selection)
+  // Picker Styling (for height and position selection)
   pickerWrapper: {
     borderWidth: 0,
     borderBottomWidth: 2,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#d4b896',
     backgroundColor: 'transparent',
     marginBottom: 6,
     overflow: Platform.OS === 'android' ? 'hidden' : 'visible',
@@ -873,7 +765,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: '#1a4d3a',
     paddingVertical: 18,
-    borderRadius: 100,
+  
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
@@ -893,7 +785,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: 'transparent',
     paddingVertical: 18,
-    borderRadius: 100,
+    
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#e0e0e0',
@@ -914,7 +806,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor:'#1a4d3a',
     paddingVertical: 18,
-    borderRadius: 100,
+   
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
@@ -934,7 +826,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     paddingVertical: 18,
-    borderRadius: 100,
+    
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#e0e0e0',
@@ -950,111 +842,10 @@ const styles = StyleSheet.create({
 
   // Logout Section
   logoutSection: {
-    marginTop: 32,
+    marginTop: 40,
     paddingTop: 32,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-  },
-
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 32,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 12,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  modalHeader: {
-    marginBottom: 32,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 8,
-    letterSpacing: -0.5,
-  },
-  modalSubtitle: {
-    fontSize: 15,
-    color: '#757575',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  modalForm: {
-    gap: 20,
-    marginBottom: 32,
-  },
-  modalFieldContainer: {
-    gap: 8,
-  },
-  modalFieldLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#757575',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  modalInput: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: '#f8f8f8',
-    borderWidth: 1,
-    borderColor: '#e8e8e8',
-  },
-  modalActions: {
-    gap: 16,
-  },
-  modalPrimaryButton: {
-    backgroundColor: '#000',
-    paddingVertical: 18,
-    borderRadius: 100,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  modalPrimaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  modalSecondaryButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 18,
-    borderRadius: 100,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
-  },
-  modalSecondaryButtonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: '600',
   },
 
   // Legacy styles for backward compatibility
@@ -1156,42 +947,21 @@ const styles = StyleSheet.create({
     marginTop: 32,
     gap: 12,
   },
-  modalSaveButton: {
-    flex: 1,
-    backgroundColor: '#10b981',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  modalSaveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalCancelButton: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-  },
-  modalCancelButtonText: {
-    color: '#374151',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   logoutButton: {
-    backgroundColor: '#dc2626',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: 'transparent',
+    paddingVertical: 18,
+   
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#dc2626',
+    marginTop: 8,
   },
   logoutButtonText: {
-    color: '#fff',
+    color: '#dc2626',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   avatar: {
     width: 84,

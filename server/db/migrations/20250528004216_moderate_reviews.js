@@ -26,10 +26,14 @@ exports.up = function (knex) {
     // Essential performance stats
     table.integer("goals").defaultTo(0).notNullable();
     table.integer("assists").defaultTo(0).notNullable();
-    table.integer("saves").defaultTo(0).notNullable();
     table.integer("tackles").defaultTo(0).notNullable();
     table.integer("interceptions").defaultTo(0).notNullable();
     table.integer("chances_created").defaultTo(0).notNullable();
+    table.integer("saves").defaultTo(0).notNullable();
+    table.integer("successful_goalie_kicks").defaultTo(0).notNullable(); // Total successful goalie kicks in match
+    table.integer("failed_goalie_kicks").defaultTo(0).notNullable(); // Total failed goalie kicks in match
+    table.integer("successful_goalie_throws").defaultTo(0).notNullable(); // Total successful goalie throws in match
+    table.integer("failed_goalie_throws").defaultTo(0).notNullable(); // Total failed goalie throws in match
     table.integer("minutes_played").defaultTo(0).notNullable(); // Total minutes played in match
     table.integer("coach_rating").defaultTo(0).notNullable(); // Manual input
     table.text("feedback").nullable(); // Coach's feedback
