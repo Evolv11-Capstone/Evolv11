@@ -13,6 +13,9 @@ exports.up = function (knex) {
     table.integer("dribbling").notNullable();
     table.integer("defense").notNullable();
     table.integer("physical").notNullable();
+    table.integer("diving").notNullable(); // Total saves in match
+    table.integer("kicking").notNullable(); // Total successful goalie kicks in match
+    table.integer("handling").notNullable(); // Total successful goalie throws in match
     table.integer("coach_grade").notNullable();
     table.integer("overall_rating").notNullable();
 

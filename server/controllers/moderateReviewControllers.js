@@ -83,7 +83,7 @@ const getBaselineStatsFromSnapshots = async (trx, playerId, matchId) => {
     };
   }
 };
-const calculateAttributeUpdates = (currentStats, matchStats) => {
+const calculateAttributeUpdates = (currentStats, matchStats, playerPosition = null) => {
   const {
     goals = 0,
     assists = 0,
@@ -92,7 +92,12 @@ const calculateAttributeUpdates = (currentStats, matchStats) => {
     interceptions = 0,
     chances_created = 0,
     minutes_played = 0,
-    coach_rating = 50
+    coach_rating = 50,
+    // Goalkeeper-specific stats
+    successful_goalie_kicks = 0,
+    failed_goalie_kicks = 0,
+    successful_goalie_throws = 0,
+    failed_goalie_throws = 0
   } = matchStats;
 
   const {
@@ -101,7 +106,11 @@ const calculateAttributeUpdates = (currentStats, matchStats) => {
     dribbling = 50,
     defense = 50,
     physical = 50,
-    coach_grade = 50
+    coach_grade = 50,
+    // Goalkeeper-specific attributes
+    diving = 50,
+    handling = 50,
+    kicking = 50
   } = currentStats;
 
   // Calculate growth/decline based on performance with baseline expectations
@@ -155,6 +164,39 @@ const calculateAttributeUpdates = (currentStats, matchStats) => {
      newDefense * 0.2 + newPhysical * 0.15 + newCoachGrade * 0.1)
   );
 
+  // Goalkeeper-specific calculations (only for GK position)
+  let newDiving = diving;
+  let newHandling = handling;
+  let newKicking = kicking;
+
+  if (playerPosition === 'GK') {
+    console.log('🥅 Calculating goalkeeper-specific attributes for GK position');
+    
+    // Diving growth based on saves performance
+    const divingGrowth = (saves * 2.5) * 0.3 + 
+      (saves === 0 && minutes_played > 45 ? -1.5 : 0); // Penalty for no saves when playing
+    
+    // Kicking growth based on kick success rate
+    const totalKicks = successful_goalie_kicks + failed_goalie_kicks;
+    const kickSuccessRate = totalKicks > 0 ? successful_goalie_kicks / totalKicks : 0.5;
+    const kickingGrowth = totalKicks > 0 ? 
+      ((kickSuccessRate - 0.7) * 10) + (totalKicks * 0.1) : // Base expectation of 70% success rate
+      (minutes_played > 45 ? -1.0 : 0); // Penalty if no kicks attempted
+    
+    // Handling growth based on throw success rate
+    const totalThrows = successful_goalie_throws + failed_goalie_throws;
+    const throwSuccessRate = totalThrows > 0 ? successful_goalie_throws / totalThrows : 0.5;
+    const handlingGrowth = totalThrows > 0 ? 
+      ((throwSuccessRate - 0.8) * 8) + (totalThrows * 0.1) : // Base expectation of 80% success rate
+      (minutes_played > 45 ? -1.0 : 0); // Penalty if no throws attempted
+
+    newDiving = Math.round(applyGrowth(diving, divingGrowth));
+    newHandling = Math.round(applyGrowth(handling, handlingGrowth));
+    newKicking = Math.round(applyGrowth(kicking, kickingGrowth));
+
+    console.log(`🥅 GK Attribute Updates: Diving ${diving}→${newDiving}, Handling ${handling}→${newHandling}, Kicking ${kicking}→${newKicking}`);
+  }
+
   return {
     shooting: newShooting,
     passing: newPassing,
@@ -162,7 +204,11 @@ const calculateAttributeUpdates = (currentStats, matchStats) => {
     defense: newDefense,
     physical: newPhysical,
     coach_grade: newCoachGrade,
-    overall_rating: newOverall
+    overall_rating: newOverall,
+    // Goalkeeper-specific attributes
+    diving: newDiving,
+    handling: newHandling,
+    kicking: newKicking
   };
 };
 
@@ -325,7 +371,12 @@ const submitPlayerMatchStats = async (req, res) => {
       chances_created = 0,
       minutes_played = 0,
       coach_rating = 50,
-      feedback = null
+      feedback = null,
+      // Goalkeeper-specific stats
+      successful_goalie_kicks = 0,
+      failed_goalie_kicks = 0,
+      successful_goalie_throws = 0,
+      failed_goalie_throws = 0
     } = req.body;
 
     if (!player_id || !match_id) {
@@ -361,7 +412,12 @@ const submitPlayerMatchStats = async (req, res) => {
       chances_created,
       minutes_played,
       coach_rating,
-      feedback
+      feedback,
+      // Goalkeeper-specific stats
+      successful_goalie_kicks,
+      failed_goalie_kicks,
+      successful_goalie_throws,
+      failed_goalie_throws
     };
 
     const existingReview = await trx('moderate_reviews')
@@ -402,7 +458,7 @@ const submitPlayerMatchStats = async (req, res) => {
     }
 
     // Calculate new player attributes using baseline stats from snapshots
-    const newAttributes = calculateAttributeUpdates(baselineStats, matchStats);
+    const newAttributes = calculateAttributeUpdates(baselineStats, matchStats, currentPlayer.position);
 
     // Get the current match for timestamp alignment
     const currentMatch = await trx('matches')
@@ -434,6 +490,9 @@ const submitPlayerMatchStats = async (req, res) => {
           physical: newAttributes.physical,
           coach_grade: newAttributes.coach_grade,
           overall_rating: newAttributes.overall_rating,
+          diving: newAttributes.diving,
+          handling: newAttributes.handling,
+          kicking: newAttributes.kicking,
           created_at: currentMatch.match_date // Align with match date
         });
     } else {
@@ -449,6 +508,9 @@ const submitPlayerMatchStats = async (req, res) => {
           physical: newAttributes.physical,
           coach_grade: newAttributes.coach_grade,
           overall_rating: newAttributes.overall_rating,
+          diving: newAttributes.diving,
+          handling: newAttributes.handling,
+          kicking: newAttributes.kicking,
           created_at: currentMatch.match_date // Use match date for chronological accuracy
         });
     }
@@ -527,7 +589,10 @@ const submitPlayerMatchStats = async (req, res) => {
             (baselineStats.shooting * 0.2 + baselineStats.passing * 0.2 + 
              baselineStats.dribbling * 0.15 + baselineStats.defense * 0.2 + 
              baselineStats.physical * 0.15 + baselineStats.coach_grade * 0.1)
-          )
+          ),
+          diving: baselineStats.diving,
+          handling: baselineStats.handling,
+          kicking: baselineStats.kicking
         },
         match_attributes: newAttributes, // Attributes calculated for this specific match
         final_attributes: { // Final attributes after chain recalculation
@@ -537,7 +602,10 @@ const submitPlayerMatchStats = async (req, res) => {
           defense: finalPlayer.defense || 50,
           physical: finalPlayer.physical || 50,
           coach_grade: finalPlayer.coach_grade || 50,
-          overall_rating: finalPlayer.overall_rating || 50
+          overall_rating: finalPlayer.overall_rating || 50,
+          diving: finalPlayer.diving || 50,
+          handling: finalPlayer.handling || 50,
+          kicking: finalPlayer.kicking || 50
         },
         match_growth: { // Growth specifically from this match
           shooting: newAttributes.shooting - baselineStats.shooting,
@@ -550,7 +618,10 @@ const submitPlayerMatchStats = async (req, res) => {
             (baselineStats.shooting * 0.2 + baselineStats.passing * 0.2 + 
              baselineStats.dribbling * 0.15 + baselineStats.defense * 0.2 + 
              baselineStats.physical * 0.15 + baselineStats.coach_grade * 0.1)
-          ))
+          )),
+          diving: newAttributes.diving - baselineStats.diving,
+          handling: newAttributes.handling - baselineStats.handling,
+          kicking: newAttributes.kicking - baselineStats.kicking
         },
         feedback: feedback || null,
         ai_suggestions: aiSuggestions || null

@@ -12,6 +12,10 @@ class PlayerSnapshot {
     this.physical = data.physical;
     this.coach_grade = data.coach_grade;
     this.overall_rating = data.overall_rating;
+    // Goalkeeper attributes
+    this.diving = data.diving;
+    this.handling = data.handling;
+    this.kicking = data.kicking;
     this.created_at = data.created_at;
   }
 
@@ -34,6 +38,10 @@ class PlayerSnapshot {
       physical: attributes.physical,
       coach_grade: attributes.coach_grade || 50, // Default if not provided
       overall_rating: attributes.overall_rating,
+      // Goalkeeper attributes
+      diving: attributes.diving,
+      handling: attributes.handling,
+      kicking: attributes.kicking,
     };
 
     // If match date is provided, use it for created_at alignment

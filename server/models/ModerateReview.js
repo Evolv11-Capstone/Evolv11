@@ -14,6 +14,11 @@ class ModerateReview {
         chances_created: 'chances_created',
         minutes_played: 'minutes_played',
         coach_rating: 'coach_rating',
+        // Goalkeeper-specific stats
+        successful_goalie_kicks: 'successful_goalie_kicks',
+        failed_goalie_kicks: 'failed_goalie_kicks',
+        successful_goalie_throws: 'successful_goalie_throws',
+        failed_goalie_throws: 'failed_goalie_throws',
       })
       .first();
 
@@ -26,6 +31,10 @@ class ModerateReview {
       chances_created: 0,
       minutes_played: 0,
       coach_rating: 0,
+      successful_goalie_kicks: 0,
+      failed_goalie_kicks: 0,
+      successful_goalie_throws: 0,
+      failed_goalie_throws: 0,
     };
   }
 }

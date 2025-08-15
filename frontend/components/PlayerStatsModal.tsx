@@ -43,6 +43,11 @@ const defaultStats = {
   chances_created: 0,
   minutes_played: 0,
   coach_rating: 50,
+  // Goalkeeper-specific stats
+  successful_goalie_kicks: 0,
+  failed_goalie_kicks: 0,
+  successful_goalie_throws: 0,
+  failed_goalie_throws: 0,
 };
 
 const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
@@ -213,6 +218,11 @@ const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
     { key: 'tackles', label: 'Tackles', section: 'stats' },
     { key: 'interceptions', label: 'Interceptions', section: 'stats' },
     { key: 'chances_created', label: 'Chances Created', section: 'stats' },
+    // Goalkeeper-specific stats
+    { key: 'successful_goalie_kicks', label: 'Successful Kicks', condition: position === 'GK', section: 'stats' },
+    { key: 'failed_goalie_kicks', label: 'Failed Kicks', condition: position === 'GK', section: 'stats' },
+    { key: 'successful_goalie_throws', label: 'Successful Throws', condition: position === 'GK', section: 'stats' },
+    { key: 'failed_goalie_throws', label: 'Failed Throws', condition: position === 'GK', section: 'stats' },
     { key: 'minutes_played', label: 'Minutes Played', section: 'manual' },
     { key: 'coach_rating', label: 'Coach Rating', section: 'manual' },
   ];

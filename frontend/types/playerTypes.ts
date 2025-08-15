@@ -15,6 +15,10 @@ export interface TeamPlayer {
   defense?: number;
   physical?: number;              // ✅ Replaces stamina
   coach_grade?: number;
+  // Goalkeeper attributes
+  diving?: number;
+  handling?: number;
+  kicking?: number;
   created_at?: string;
 }
 
