@@ -518,6 +518,48 @@ const submitPlayerMatchStats = async (req, res) => {
     // Recalculate all subsequent snapshots chronologically
     await recalculateSubsequentSnapshots(trx, player_id, match_id, newAttributes);
 
+    // Always generate AI grade for performance (regardless of feedback)
+    let aiRating = null;
+    let aiReasoning = null;
+    
+    try {
+      console.log('📊 Generating AI grade for player performance...');
+      
+      // Get player position and match data for context
+      const playerPosition = currentPlayer.position || 'unknown';
+      const matchData = await trx('matches').where({ id: match_id }).first();
+      const goalsConceded = matchData?.opponent_score || 0;
+      
+      // Enhanced match stats with goalkeeper context
+      const enhancedMatchStats = {
+        ...matchStats,
+        goals_conceded: goalsConceded
+      };
+      
+      // Generate AI grade for the performance
+      const aiGradeResult = aiSuggestionsService.generateAiGrade(enhancedMatchStats, playerPosition);
+      
+      // Prepare AI grade data for database
+      aiRating = aiGradeResult.numeric;
+      aiReasoning = JSON.stringify({
+        letter: aiGradeResult.letter,
+        components: aiGradeResult.components,
+        notes: aiGradeResult.notes
+      });
+
+      console.log(`📊 AI Grade: ${aiRating} (${aiGradeResult.letter})`);
+      
+    } catch (gradeError) {
+      console.error('❌ Error generating AI grade:', gradeError.message);
+      // Set fallback values if AI grade generation fails
+      aiRating = 50;
+      aiReasoning = JSON.stringify({
+        letter: 'C',
+        components: { fallback: 50 },
+        notes: ['Grade calculation unavailable']
+      });
+    }
+
     // Generate AI suggestions if feedback was provided
     let aiSuggestions = null;
     if (shouldGenerateAI) {
@@ -546,16 +588,30 @@ const submitPlayerMatchStats = async (req, res) => {
           playerPosition
         );
 
+        // Generate AI grade for the performance
+        console.log('📊 Generating AI grade for player performance...');
+        const aiGradeResult = aiSuggestionsService.generateAiGrade(enhancedMatchStats, playerPosition);
+        
+        // Prepare AI grade data for database
+        const aiGrade = aiGradeResult.numeric;
+        const aiReasoning = JSON.stringify({
+          letter: aiGradeResult.letter,
+          components: aiGradeResult.components,
+          notes: aiGradeResult.notes
+        });
+
         if (aiSuggestions) {
-          // Update the moderate_review record with AI suggestions
+          // Update the moderate_review record with AI suggestions and grade
           await trx('moderate_reviews')
             .where({ id: reviewId })
             .update({
               ai_suggestions: aiSuggestions,
+              ai_rating: aiRating,
+              ai_reasoning: aiReasoning,
               updated_at: knex.fn.now()
             });
           
-          console.log('✅ AI suggestions generated and saved successfully');
+          console.log('✅ AI suggestions and grade generated successfully');
         } else {
           console.log('⚠️ AI suggestions generation returned null');
         }
@@ -564,6 +620,21 @@ const submitPlayerMatchStats = async (req, res) => {
         // Don't fail the entire request if AI fails
         // Continue with the transaction
       }
+    }
+
+    // Always update AI grade (regardless of suggestions outcome)
+    try {
+      await trx('moderate_reviews')
+        .where({ id: reviewId })
+        .update({
+          ai_rating: aiRating,
+          ai_reasoning: aiReasoning,
+          updated_at: knex.fn.now()
+        });
+      console.log('✅ AI grade saved to database');
+    } catch (gradeUpdateError) {
+      console.error('❌ Error saving AI grade to database:', gradeUpdateError.message);
+      // Continue with transaction even if grade update fails
     }
 
     await trx.commit();

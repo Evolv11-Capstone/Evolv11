@@ -37,6 +37,35 @@ class ModerateReview {
       failed_goalie_throws: 0,
     };
   }
+
+  static async getAiGradeSummaryForPlayer(playerId) {
+    const result = await knex('moderate_reviews')
+      .where({ player_id: playerId })
+      .whereNotNull('ai_rating')
+      .select(
+        knex.raw('AVG(ai_rating) as average_grade'),
+        knex.raw('COUNT(*) as total_reviews'),
+        knex.raw('MAX(ai_rating) as highest_grade'),
+        knex.raw('MIN(ai_rating) as lowest_grade')
+      )
+      .first();
+
+    if (!result || result.total_reviews === 0) {
+      return {
+        average_grade: null,
+        total_reviews: 0,
+        highest_grade: null,
+        lowest_grade: null
+      };
+    }
+
+    return {
+      average_grade: Math.round(result.average_grade),
+      total_reviews: parseInt(result.total_reviews),
+      highest_grade: result.highest_grade,
+      lowest_grade: result.lowest_grade
+    };
+  }
 }
 
 module.exports = ModerateReview;

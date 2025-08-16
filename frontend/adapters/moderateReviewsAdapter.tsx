@@ -24,6 +24,9 @@ export type PlayerMatchStats = {
   feedback?: string;
   ai_suggestions?: string;
   reflection?: string;
+  // AI Grade fields
+  ai_rating?: number;
+  ai_reasoning?: string;
 };
 
 export type PlayerStatsSubmission = PlayerMatchStats & {

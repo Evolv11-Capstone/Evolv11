@@ -12,6 +12,7 @@ import {
   Easing,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,6 +60,9 @@ const FeedbackDetailScreen = () => {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [showUnlockAnimation, setShowUnlockAnimation] = useState(false);
 
+  // AI Grade modal state
+  const [showAiGradeModal, setShowAiGradeModal] = useState(false);
+
   // Animation values
   const lockOpacity = useRef(new Animated.Value(1)).current;
   const unlockScale = useRef(new Animated.Value(0.8)).current;
@@ -66,9 +70,22 @@ const FeedbackDetailScreen = () => {
   const shimmerAnimation = useRef(new Animated.Value(0)).current;
 
   // Reusable StatRow component
-  const StatRow = ({ label, value, testID }: { label: string; value: string; testID?: string }) => (
+  const StatRow = ({ label, value, testID, showInfo, onInfoPress }: { 
+    label: string; 
+    value: string; 
+    testID?: string; 
+    showInfo?: boolean;
+    onInfoPress?: () => void;
+  }) => (
     <View style={styles.statRow} testID={testID}>
-      <Text style={styles.statRowLabel}>{label}</Text>
+      <View style={styles.statRowLabelContainer}>
+        <Text style={styles.statRowLabel}>{label}</Text>
+        {showInfo && (
+          <TouchableOpacity onPress={onInfoPress} style={styles.infoButton}>
+            <Ionicons name="information-circle-outline" size={16} color="#1a4d3a" />
+          </TouchableOpacity>
+        )}
+      </View>
       <Text style={styles.statRowValue} accessibilityLabel={`${label}: ${value}`}>{value}</Text>
     </View>
   );
@@ -184,11 +201,25 @@ const FeedbackDetailScreen = () => {
     );
   };
 
-  // Function to render ratings section (Coach Grade)
+  // Function to render ratings section (Coach Grade + AI Grade)
   const renderRatingsSection = () => {
     if (!matchStats) return null;
 
     const coachGrade = matchStats.coach_rating || 0;
+    const aiRating = matchStats.ai_rating || null;
+    
+    // Parse AI reasoning if available
+    let aiLetter = null;
+    let aiNotes = [];
+    if (matchStats.ai_reasoning) {
+      try {
+        const reasoning = JSON.parse(matchStats.ai_reasoning);
+        aiLetter = reasoning.letter;
+        aiNotes = reasoning.notes || [];
+      } catch (e) {
+        console.log('Failed to parse AI reasoning:', e);
+      }
+    }
 
     return (
       <View style={styles.ratingsSection}>
@@ -198,6 +229,15 @@ const FeedbackDetailScreen = () => {
           value={`${coachGrade}`} 
           testID="stat-coach-grade" 
         />
+        {aiRating !== null && (
+          <StatRow 
+            label="AI Grade" 
+            value={aiLetter ? `${aiRating} (${aiLetter})` : `${aiRating}`}
+            testID="stat-ai-grade"
+            showInfo={aiNotes.length > 0}
+            onInfoPress={() => setShowAiGradeModal(true)}
+          />
+        )}
       </View>
     );
   };
@@ -489,6 +529,80 @@ const FeedbackDetailScreen = () => {
     );
   };
 
+  // Render AI Grade breakdown modal
+  const renderAiGradeModal = () => {
+    if (!matchStats?.ai_reasoning) return null;
+
+    let reasoning;
+    try {
+      reasoning = JSON.parse(matchStats.ai_reasoning);
+    } catch (e) {
+      return null;
+    }
+
+    const { letter, components, notes } = reasoning;
+
+    return (
+      <Modal
+        visible={showAiGradeModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAiGradeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>AI Grade Breakdown</Text>
+              <TouchableOpacity 
+                onPress={() => setShowAiGradeModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#1a4d3a" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.gradeHeaderContainer}>
+                <Text style={styles.modalGradeText}>
+                  {matchStats.ai_rating} ({letter})
+                </Text>
+                <Text style={styles.modalGradeSubtext}>
+                  Position-aware AI assessment
+                </Text>
+              </View>
+
+              {notes && notes.length > 0 && (
+                <View style={styles.notesSection}>
+                  <Text style={styles.notesSectionTitle}>Performance Insights</Text>
+                  {notes.map((note: string, index: number) => (
+                    <View key={index} style={styles.noteItem}>
+                      <View style={styles.noteBullet} />
+                      <Text style={styles.noteText}>{note}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {components && Object.keys(components).length > 0 && (
+                <View style={styles.componentsSection}>
+                  <Text style={styles.componentsSectionTitle}>Grade Components</Text>
+                  {Object.entries(components).map(([key, value]) => (
+                    <View key={key} style={styles.componentRow}>
+                      <Text style={styles.componentLabel}>
+                        {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Text>
+                      <Text style={styles.componentValue}>{Math.round(value as number)}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -691,6 +805,9 @@ const FeedbackDetailScreen = () => {
         </View>
       </View>
       </ScrollView>
+
+      {/* AI Grade Modal */}
+      {renderAiGradeModal()}
     </KeyboardAvoidingView>
   );
 };
@@ -871,6 +988,15 @@ const styles = StyleSheet.create({
     color: '#666',
     opacity: 0.9,
     flex: 1,
+  },
+  statRowLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  infoButton: {
+    marginLeft: 8,
+    padding: 2,
   },
   statRowValue: {
     fontSize: 14,
@@ -1079,6 +1205,129 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  // AI Grade Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a4d3a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  gradeHeaderContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingVertical: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+  },
+  modalGradeText: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1a4d3a',
+    marginBottom: 4,
+  },
+  modalGradeSubtext: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  notesSection: {
+    marginBottom: 24,
+  },
+  notesSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a4d3a',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  noteItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  noteBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#1a4d3a',
+    marginTop: 6,
+    marginRight: 12,
+  },
+  noteText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+  },
+  componentsSection: {
+    marginBottom: 16,
+  },
+  componentsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a4d3a',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  componentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  componentLabel: {
+    fontSize: 14,
+    color: '#666',
+    flex: 1,
+  },
+  componentValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a4d3a',
+    textAlign: 'right',
+    minWidth: 40,
   },
 });
 
