@@ -65,6 +65,14 @@ const FeedbackDetailScreen = () => {
   const unlockOpacity = useRef(new Animated.Value(0)).current;
   const shimmerAnimation = useRef(new Animated.Value(0)).current;
 
+  // Reusable StatRow component
+  const StatRow = ({ label, value, testID }: { label: string; value: string; testID?: string }) => (
+    <View style={styles.statRow} testID={testID}>
+      <Text style={styles.statRowLabel}>{label}</Text>
+      <Text style={styles.statRowValue} accessibilityLabel={`${label}: ${value}`}>{value}</Text>
+    </View>
+  );
+
   // Function to render goalkeeper-specific stats
   const renderGoalkeeperStats = () => {
     if (!matchStats) return null;
@@ -92,46 +100,35 @@ const FeedbackDetailScreen = () => {
       ? Math.round((throws_successful / throws_attempted) * 100) 
       : null;
 
-    const coachGrade = matchStats.coach_rating || 0;
-
     return (
       <View style={styles.outfieldStatsContainer}>
-        {/* First row */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {savePercentage !== null ? `${savePercentage}%` : 'N/A'}
-            </Text>
-            <Text style={styles.statLabel}>Save %</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {kicksAccuracy !== null ? `${kicksAccuracy}%` : 'N/A'}
-            </Text>
-            <Text style={styles.statLabel}>Kicks – Accuracy</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {throwsAccuracy !== null ? `${throwsAccuracy}%` : 'N/A'}
-            </Text>
-            <Text style={styles.statLabel}>Throws – Accuracy</Text>
-          </View>
+        {/* Performance Section */}
+        <View style={styles.performanceSection}>
+          <Text style={styles.subsectionTitle}>Match Statistics</Text>
+          <StatRow 
+            label="Minutes Played" 
+            value={`${minutesPlayed}'`} 
+            testID="stat-minutes-played" 
+          />
+          <StatRow 
+            label="Save %" 
+            value={savePercentage !== null ? `${savePercentage}%` : 'N/A'} 
+            testID="stat-save-pct" 
+          />
+          <StatRow 
+            label="Kicks – Accuracy" 
+            value={kicksAccuracy !== null ? `${kicksAccuracy}%` : 'N/A'} 
+            testID="stat-kicks-accuracy" 
+          />
+          <StatRow 
+            label="Throws – Accuracy" 
+            value={throwsAccuracy !== null ? `${throwsAccuracy}%` : 'N/A'} 
+            testID="stat-throws-accuracy" 
+          />
         </View>
         
-        {/* Second row */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{minutesPlayed}</Text>
-            <Text style={styles.statLabel}>Minutes Played</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coachGrade}</Text>
-            <Text style={styles.statLabel}>Coach Grade</Text>
-          </View>
-          <View style={styles.statItem}>
-            {/* Empty space for alignment */}
-          </View>
-        </View>
+        {/* Divider */}
+        <View style={styles.sectionDivider} />
       </View>
     );
   };
@@ -146,51 +143,61 @@ const FeedbackDetailScreen = () => {
 
     return (
       <View style={styles.outfieldStatsContainer}>
-        {/* First row */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{matchStats.goals}</Text>
-            <Text style={styles.statLabel}>Goals</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{matchStats.assists}</Text>
-            <Text style={styles.statLabel}>Assists</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{matchStats.tackles}</Text>
-            <Text style={styles.statLabel}>Tackles</Text>
-          </View>
+        {/* Performance Section */}
+        <View style={styles.performanceSection}>
+          <Text style={styles.subsectionTitle}>Match Statistics</Text>
+          <StatRow 
+            label="Minutes Played" 
+            value={`${minutesPlayed}'`} 
+            testID="stat-minutes-played" 
+          />
+          <StatRow 
+            label="Goals" 
+            value={`${matchStats.goals}`} 
+            testID="stat-goals" 
+          />
+          <StatRow 
+            label="Assists" 
+            value={`${matchStats.assists}`} 
+            testID="stat-assists" 
+          />
+          <StatRow 
+            label="Tackles" 
+            value={`${matchStats.tackles}`} 
+            testID="stat-tackles" 
+          />
+          <StatRow 
+            label="Interceptions" 
+            value={`${interceptions}`} 
+            testID="stat-interceptions" 
+          />
+          <StatRow 
+            label="Chances Created" 
+            value={`${chancesCreated}`} 
+            testID="stat-chances-created" 
+          />
         </View>
         
-        {/* Second row */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{interceptions}</Text>
-            <Text style={styles.statLabel}>Interceptions</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{chancesCreated}</Text>
-            <Text style={styles.statLabel}>Chances Created</Text>
-          </View>
-          <View style={styles.statItem}>
-            {/* Empty space for alignment */}
-          </View>
-        </View>
-        
-        {/* Third row */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{minutesPlayed}</Text>
-            <Text style={styles.statLabel}>Minutes Played</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{matchStats.coach_rating}</Text>
-            <Text style={styles.statLabel}>Coach Rating</Text>
-          </View>
-          <View style={styles.statItem}>
-            {/* Empty space for alignment */}
-          </View>
-        </View>
+        {/* Divider */}
+        <View style={styles.sectionDivider} />
+      </View>
+    );
+  };
+
+  // Function to render ratings section (Coach Grade)
+  const renderRatingsSection = () => {
+    if (!matchStats) return null;
+
+    const coachGrade = matchStats.coach_rating || 0;
+
+    return (
+      <View style={styles.ratingsSection}>
+        <Text style={styles.subsectionTitle}>Ratings</Text>
+        <StatRow 
+          label="Coach Grade" 
+          value={`${coachGrade}`} 
+          testID="stat-coach-grade" 
+        />
       </View>
     );
   };
@@ -544,6 +551,7 @@ const FeedbackDetailScreen = () => {
           >
             <Text style={styles.sectionTitle}>Performance Summary</Text>
             {playerPosition === 'GK' ? renderGoalkeeperStats() : renderOutfieldStats()}
+            {renderRatingsSection()}
           </Animated.View>
           
           {!isUnlocked && renderLockedOverlay("Unlock by writing your reflection")}
@@ -837,6 +845,47 @@ const styles = StyleSheet.create({
   },
   outfieldStatsContainer: {
     gap: 16,
+  },
+  performanceSection: {
+    marginBottom: 20,
+  },
+  ratingsSection: {
+    marginTop: 8,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    marginVertical: 12,
+    opacity: 0.12,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.12)',
+  },
+  statRowLabel: {
+    fontSize: 14,
+    color: '#666',
+    opacity: 0.9,
+    flex: 1,
+  },
+  statRowValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a4d3a',
+    textAlign: 'right',
+    fontVariant: ['tabular-nums'],
+  },
+  subsectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a4d3a',
+    marginBottom: 12,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   statItem: {
     alignItems: 'center',
