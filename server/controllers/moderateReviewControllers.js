@@ -528,10 +528,20 @@ const submitPlayerMatchStats = async (req, res) => {
         const playerName = currentPlayer.name || `Player ${currentPlayer.id}`;
         const playerPosition = currentPlayer.position || 'unknown';
         
+        // Get match data for goalkeeper context (goals conceded)
+        const matchData = await trx('matches').where({ id: match_id }).first();
+        const goalsConceded = matchData?.opponent_score || 0;
+        
+        // Enhanced match stats with goalkeeper context
+        const enhancedMatchStats = {
+          ...matchStats,
+          goals_conceded: goalsConceded
+        };
+        
         // Generate AI suggestions
         aiSuggestions = await aiSuggestionsService.generatePlayerSuggestions(
           feedback,
-          matchStats,
+          enhancedMatchStats,
           playerName,
           playerPosition
         );

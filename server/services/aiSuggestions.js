@@ -48,6 +48,7 @@ class AISuggestionsService {
     }
 
     try {
+      // Extract standard stats
       const {
         goals = 0,
         assists = 0,
@@ -56,8 +57,31 @@ class AISuggestionsService {
         interceptions = 0,
         chances_created = 0,
         minutes_played = 0,
-        coach_rating = 50
+        coach_rating = 50,
+        // Goalkeeper-specific stats
+        successful_goalie_kicks = 0,
+        failed_goalie_kicks = 0,
+        successful_goalie_throws = 0,
+        failed_goalie_throws = 0,
+        goals_conceded = 0
       } = playerStats;
+
+      // Calculate goalkeeper-specific metrics if position is GK
+      let gkMetrics = '';
+      if (position === 'GK') {
+        const kicks_attempted = successful_goalie_kicks + failed_goalie_kicks;
+        const kicks_accuracy = kicks_attempted > 0 ? Math.round((successful_goalie_kicks / kicks_attempted) * 100) : 0;
+        
+        const throws_attempted = successful_goalie_throws + failed_goalie_throws;
+        const throws_accuracy = throws_attempted > 0 ? Math.round((successful_goalie_throws / throws_attempted) * 100) : 0;
+
+        gkMetrics = `
+Goalkeeper-specific performance:
+- Saves: ${saves}
+- Goals Conceded: ${goals_conceded}
+- Kicks: ${kicks_attempted} attempts, ${kicks_accuracy}% success rate
+- Throws: ${throws_attempted} attempts, ${throws_accuracy}% success rate`;
+      }
 
       const prompt = `
 You are an experienced football coach providing constructive feedback to help players improve. 
@@ -76,18 +100,18 @@ Player match performance:
 - Interceptions: ${interceptions}
 - Chances Created: ${chances_created}
 - Minutes Played: ${minutes_played}
-- Coach Rating: ${coach_rating}/100
+- Coach Rating: ${coach_rating}/100${gkMetrics}
 
 Instructions:
 1. First, rephrase the coach's feedback in a constructive, encouraging way that maintains honesty while being supportive
 2. Then provide exactly 3 bullet points with specific, actionable improvement suggestions based on the feedback, performance stats, AND the player's position
-3. Tailor suggestions to the player's position (e.g., goalkeepers focus on shot-stopping/distribution, defenders on tackling/positioning, midfielders on passing/vision, forwards on finishing/movement)
+3. Tailor suggestions to the player's position${position === 'GK' ? ' (focus on goalkeeper-specific skills like diving, distribution, handling, kicking accuracy, and command of the penalty area)' : ' (e.g., goalkeepers focus on shot-stopping/distribution, defenders on tackling/positioning, midfielders on passing/vision, forwards on finishing/movement)'}
 4. Keep the tone professional but encouraging
 5. Focus on specific skills, techniques, or tactical improvements relevant to their position
 6. Make suggestions practical and achievable for a ${position}
 
 Position-specific focus areas:
-- GK (Goalkeeper): Shot-stopping, distribution, command of penalty area, communication, positioning
+- GK (Goalkeeper): Shot-stopping, distribution (kicks/throws), command of penalty area, communication, positioning, diving technique
 - CB/LB/RB (Defenders): Tackling, marking, aerial duels, positioning, passing out from the back
 - CDM/CM/CAM (Midfielders): Passing accuracy, vision, work rate, pressing, ball retention
 - LW/RW (Wingers): Crossing, dribbling, tracking back, pace utilization, 1v1 situations

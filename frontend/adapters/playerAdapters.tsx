@@ -48,7 +48,7 @@ export const updatePlayerPosition = async (
 export const getPlayerByUserAndTeam = async (
   userId: number,
   teamId: number
-): Promise<[{ id: number } | null, Error | null]> => {
+): Promise<[TeamPlayer | null, Error | null]> => {
   try {
     const [players, error] = await getPlayersByTeam(teamId);
 
@@ -69,8 +69,8 @@ export const getPlayerByUserAndTeam = async (
       return [null, new Error(`Player not found for user ${userId} in team ${teamId}. Available players: ${players.map(p => `${p.name}(user_id: ${p.user_id})`).join(', ')}`)];
     }
     
-    console.log('Found player:', { id: player.id, user_id: player.user_id, name: player.name });
-    return [{ id: player.id }, null];
+    console.log('Found player:', { id: player.id, user_id: player.user_id, name: player.name, position: player.position });
+    return [player, null];
   } catch (err: any) {
     console.error('Error in getPlayerByUserAndTeam:', err);
     return [null, err];

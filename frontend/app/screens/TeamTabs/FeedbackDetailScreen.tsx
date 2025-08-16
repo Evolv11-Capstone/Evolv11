@@ -18,6 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { getPlayerMatchStats, updatePlayerReflection, type PlayerMatchStats } from '../../../adapters/moderateReviewsAdapter';
 import { getPlayerByUserAndTeam } from '../../../adapters/playerAdapters';
+import { getMatchById } from '../../../adapters/matchAdapters';
+import { type Match } from '../../../types/matchTypes';
 import { useActiveTeam } from '../../contexts/ActiveTeamContext';
 import { useUser } from '../../contexts/UserContext';
 
@@ -44,6 +46,8 @@ const FeedbackDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resolvedPlayerId, setResolvedPlayerId] = useState<number | null>(null);
+  const [playerPosition, setPlayerPosition] = useState<string | null>(null);
+  const [matchData, setMatchData] = useState<Match | null>(null);
 
   // Reflection states
   const [reflection, setReflection] = useState<string>('');
@@ -60,6 +64,136 @@ const FeedbackDetailScreen = () => {
   const unlockScale = useRef(new Animated.Value(0.8)).current;
   const unlockOpacity = useRef(new Animated.Value(0)).current;
   const shimmerAnimation = useRef(new Animated.Value(0)).current;
+
+  // Function to render goalkeeper-specific stats
+  const renderGoalkeeperStats = () => {
+    if (!matchStats) return null;
+
+    const minutesPlayed = matchStats.minutes_played || 0;
+
+    // Save percentage: saves / (saves + goals_conceded) * 100
+    const saves = matchStats.saves || 0;
+    const goalsConceded = matchData?.opponent_score || 0;
+    const savePercentage = (saves + goalsConceded) > 0 
+      ? Math.round((saves / (saves + goalsConceded)) * 100) 
+      : null;
+
+    // Kicks accuracy
+    const kicks_attempted = (matchStats.successful_goalie_kicks || 0) + (matchStats.failed_goalie_kicks || 0);
+    const kicks_successful = matchStats.successful_goalie_kicks || 0;
+    const kicksAccuracy = kicks_attempted > 0 
+      ? Math.round((kicks_successful / kicks_attempted) * 100) 
+      : null;
+    
+    // Throws accuracy
+    const throws_attempted = (matchStats.successful_goalie_throws || 0) + (matchStats.failed_goalie_throws || 0);
+    const throws_successful = matchStats.successful_goalie_throws || 0;
+    const throwsAccuracy = throws_attempted > 0 
+      ? Math.round((throws_successful / throws_attempted) * 100) 
+      : null;
+
+    const coachGrade = matchStats.coach_rating || 0;
+
+    return (
+      <View style={styles.outfieldStatsContainer}>
+        {/* First row */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>
+              {savePercentage !== null ? `${savePercentage}%` : 'N/A'}
+            </Text>
+            <Text style={styles.statLabel}>Save %</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>
+              {kicksAccuracy !== null ? `${kicksAccuracy}%` : 'N/A'}
+            </Text>
+            <Text style={styles.statLabel}>Kicks – Accuracy</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>
+              {throwsAccuracy !== null ? `${throwsAccuracy}%` : 'N/A'}
+            </Text>
+            <Text style={styles.statLabel}>Throws – Accuracy</Text>
+          </View>
+        </View>
+        
+        {/* Second row */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{minutesPlayed}</Text>
+            <Text style={styles.statLabel}>Minutes Played</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{coachGrade}</Text>
+            <Text style={styles.statLabel}>Coach Grade</Text>
+          </View>
+          <View style={styles.statItem}>
+            {/* Empty space for alignment */}
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  // Function to render outfield player stats
+  const renderOutfieldStats = () => {
+    if (!matchStats) return null;
+
+    const interceptions = matchStats.interceptions || 0;
+    const chancesCreated = matchStats.chances_created || 0;
+    const minutesPlayed = matchStats.minutes_played || 0;
+
+    return (
+      <View style={styles.outfieldStatsContainer}>
+        {/* First row */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{matchStats.goals}</Text>
+            <Text style={styles.statLabel}>Goals</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{matchStats.assists}</Text>
+            <Text style={styles.statLabel}>Assists</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{matchStats.tackles}</Text>
+            <Text style={styles.statLabel}>Tackles</Text>
+          </View>
+        </View>
+        
+        {/* Second row */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{interceptions}</Text>
+            <Text style={styles.statLabel}>Interceptions</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{chancesCreated}</Text>
+            <Text style={styles.statLabel}>Chances Created</Text>
+          </View>
+          <View style={styles.statItem}>
+            {/* Empty space for alignment */}
+          </View>
+        </View>
+        
+        {/* Third row */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{minutesPlayed}</Text>
+            <Text style={styles.statLabel}>Minutes Played</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{matchStats.coach_rating}</Text>
+            <Text style={styles.statLabel}>Coach Rating</Text>
+          </View>
+          <View style={styles.statItem}>
+            {/* Empty space for alignment */}
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   useEffect(() => {
     const resolvePlayerId = async () => {
@@ -87,6 +221,7 @@ const FeedbackDetailScreen = () => {
         
         console.log('Successfully resolved player ID:', playerResult.id);
         setResolvedPlayerId(playerResult.id);
+        setPlayerPosition(playerResult.position || null);
       } catch (err: any) {
         console.error('Error resolving player ID:', err);
         setError(err.message || 'Failed to resolve player information');
@@ -96,6 +231,31 @@ const FeedbackDetailScreen = () => {
 
     resolvePlayerId();
   }, [playerId, user?.id, activeTeamId]);
+
+  // Fetch match data
+  useEffect(() => {
+    const loadMatchData = async () => {
+      if (!matchId) return;
+
+      try {
+        const [match, matchError] = await getMatchById(matchId);
+        
+        if (matchError) {
+          console.error('Failed to load match data:', matchError.message);
+          return;
+        }
+        
+        if (match) {
+          setMatchData(match);
+          console.log('Match data loaded:', match);
+        }
+      } catch (err: any) {
+        console.error('Error loading match data:', err);
+      }
+    };
+
+    loadMatchData();
+  }, [matchId]);
 
   useEffect(() => {
     const loadMatchFeedback = async () => {
@@ -383,24 +543,7 @@ const FeedbackDetailScreen = () => {
             ]}
           >
             <Text style={styles.sectionTitle}>Performance Summary</Text>
-            <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{matchStats.goals}</Text>
-                <Text style={styles.statLabel}>Goals</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{matchStats.assists}</Text>
-                <Text style={styles.statLabel}>Assists</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{matchStats.tackles}</Text>
-                <Text style={styles.statLabel}>Tackles</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{matchStats.coach_rating}</Text>
-                <Text style={styles.statLabel}>Coach Rating</Text>
-              </View>
-            </View>
+            {playerPosition === 'GK' ? renderGoalkeeperStats() : renderOutfieldStats()}
           </Animated.View>
           
           {!isUnlocked && renderLockedOverlay("Unlock by writing your reflection")}
@@ -692,12 +835,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  outfieldStatsContainer: {
+    gap: 16,
+  },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '800',
     color: '#1a4d3a',
     marginBottom: 4,
@@ -709,6 +855,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     textAlign: 'center',
+  },
+  statSubLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 2,
   },
   feedbackIntro: {
     fontSize: 14,
