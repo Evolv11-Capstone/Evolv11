@@ -1,6 +1,27 @@
 // services/aiSuggestions.js
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
+// Average of 0–100 components (fallback 50 if empty)
+const averageOfComponents = (components) => {
+  const vals = Object.values(components).filter(v => Number.isFinite(v));
+  return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 50;
+};
+
+// Weighted mean for 0–100 components; re-normalize over present metrics only
+const weightedMeanFromComponents = (
+  components,
+  weights
+) => {
+  let wSum = 0, acc = 0;
+  for (const [k, val] of Object.entries(components)) {
+    const w = weights[k] ?? 0;
+    if (!Number.isFinite(val) || w <= 0) continue;
+    wSum += w;
+    acc += (val / 100) * w; // components are 0–100 → normalize to 0–1
+  }
+  return wSum > 0 ? (acc / wSum) * 100 : averageOfComponents(components);
+};
+
 class AISuggestionsService {
   constructor() {
     this.genAI = null;
@@ -171,6 +192,28 @@ Do not include any other text, headers, or formatting.
    * @returns {Object} - { numeric, letter, components, notes }
    */
   generateAiGrade(stats, position = 'unknown') {
+    // Role-specific weights for outfield players
+    const DEF_WEIGHTS = {
+      tackles: 0.40,
+      interceptions: 0.35,
+      defensive_actions: 0.20,
+      contribution: 0.05, // goals/assists bonus
+    };
+
+    const MID_WEIGHTS = {
+      creativity: 0.45,    // chances_created-driven
+      assists: 0.25,
+      defensive_work: 0.15, // tackles+interceptions
+      goals: 0.15,
+    };
+
+    const FWD_WEIGHTS = {
+      goals: 0.50,
+      assists: 0.20,
+      attacking_threat: 0.25,
+      defensive_work: 0.05,
+    };
+
     try {
       const {
         goals = 0,
@@ -195,6 +238,11 @@ Do not include any other text, headers, or formatting.
 
       // Minutes scaling factor (0.0 to 1.0, scales linearly up to 30 minutes)
       const minutesScale = Math.min(1.0, minutes_played / 30);
+      
+      // Role detection for weighted grading
+      const isDefender = ['CB', 'LB', 'RB'].includes(position);
+      const isMidfielder = ['CDM', 'CM', 'CAM'].includes(position);
+      const isForward = ['LW', 'RW', 'ST', 'CF'].includes(position);
       
       let components = {};
       let notes = [];
@@ -236,10 +284,6 @@ Do not include any other text, headers, or formatting.
 
       } else {
         // Outfield player grading
-        const isDefender = ['CB', 'LB', 'RB'].includes(position);
-        const isMidfielder = ['CDM', 'CM', 'CAM'].includes(position);
-        const isForward = ['LW', 'RW', 'ST', 'CF'].includes(position);
-
         if (isDefender) {
           // Defender focus: tackles, interceptions, defensive actions
           components = {
@@ -301,17 +345,25 @@ Do not include any other text, headers, or formatting.
         components[key] = Math.round(components[key] * minutesScale);
       });
 
-      // Calculate weighted average of components
-      const componentValues = Object.values(components);
-      const baseGrade = componentValues.length > 0 
-        ? componentValues.reduce((sum, val) => sum + val, 0) / componentValues.length 
-        : 50;
+      // Calculate role-weighted base grade for outfield; keep GK as simple average
+      let baseGrade;
+      if (position === 'GK') {
+        baseGrade = averageOfComponents(components);
+      } else if (isDefender) {
+        baseGrade = weightedMeanFromComponents(components, DEF_WEIGHTS);
+      } else if (isMidfielder) {
+        baseGrade = weightedMeanFromComponents(components, MID_WEIGHTS);
+      } else if (isForward) {
+        baseGrade = weightedMeanFromComponents(components, FWD_WEIGHTS);
+      } else {
+        baseGrade = averageOfComponents(components); // fallback for unknown roles
+      }
 
       // Factor in coach rating (20% weight)
       const finalNumeric = Math.round((baseGrade * 0.8) + (coach_rating * 0.2));
 
       // Apply slight positive bias (optimism): +2-4 points typical, capped at 100
-      const biasedGrade = Math.min(100, Math.max(0, (finalNumeric * 1.03) + 1));
+      const biasedGrade = Math.min(100, Math.max(0, (finalNumeric * 1.35) + 1));
       
       // Ensure grade is within bounds
       const clampedGrade = Math.round(biasedGrade);
