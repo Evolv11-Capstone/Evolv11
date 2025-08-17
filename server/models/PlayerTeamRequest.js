@@ -8,7 +8,7 @@ class PlayerTeamRequest {
     this.id = id;                   // Unique ID of the request
     this.user_id = user_id;         // The player making the request
     this.team_id = team_id;         // The team the player wants to join
-    this.status = status;           // Request status: 'pending', 'approved', or 'rejected'
+    this.status = status;           // Request status: 'pending' or 'approved' (rejected requests are deleted)
     this.created_at = created_at;   // Timestamp of request creation
     this.updated_at = updated_at;   // Timestamp of last update to the request
   }
@@ -16,7 +16,7 @@ class PlayerTeamRequest {
   // Fetch player requests with user info
 static async list() {
   // Query the player_team_requests table and join with users to get user details
-  // Select relevant fields including user name and role
+  // Select relevant fields including user name, role, and image
   const results = await knex('player_team_requests as ptr')
     .join('users as u', 'ptr.user_id', 'u.id')
     .select(
@@ -25,7 +25,8 @@ static async list() {
       'ptr.user_id',
       'ptr.status',
       'u.name as user_name',
-      'u.role as role'
+      'u.role as role',
+      'u.image_url as user_image'
     );
 
   return results;

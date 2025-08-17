@@ -56,9 +56,8 @@ export default function NotificationsScreen() {
     const action = role === 'player' ? rejectPlayerTeamRequest : rejectCoachTeamRequest;
     const { success, message } = await action(id);
     if (!success) Alert.alert('Error', message || 'Failed to reject request');
-    setRequests((prev) =>
-      prev.map((req) => (req.id === id ? { ...req, status: 'rejected' } : req))
-    );
+    // Remove the rejected request from the state since it's deleted on the backend
+    setRequests((prev) => prev.filter((req) => req.id !== id));
   };
 
   return (
@@ -86,6 +85,7 @@ export default function NotificationsScreen() {
                     userName={req.user_name || 'Unknown'}
                     role={req.role || ''}
                     status={req.status}
+                    userImage={req.user_image}
                     onApprove={() => handleApprove(req.id, req.role)}
                     onReject={() => handleReject(req.id, req.role)}
                   />

@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { ActivityIndicator, View, TouchableOpacity, Text } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 // Contexts
 import { UserProvider, useUser } from './app/contexts/UserContext';
@@ -14,6 +13,9 @@ import { DataRefreshProvider } from './app/contexts/DataRefreshContext';
 import AuthNavigator from './app/navigation/AuthNavigator';
 import PostAuthTabsNavigator from './app/navigation/PostAuthTabsNavigator';
 import TeamTabsNavigator from './app/navigation/TeamTabsNavigator';
+
+// Components
+import BackToTeamTabsButton from './components/BackToTeamTabsButton';
 
 // Extra screens outside of tabs
 import PlayerDetailScreen from './app/screens/TeamTabs/PlayerDetailScreen'; 
@@ -81,7 +83,6 @@ function Navigation() {
                 headerShown: true, 
                 title: 'PLAYER PROFILE',
                 headerStyle: {
-    
                   backgroundColor: '#f5f3f0',
                   borderBottomWidth: 1,
                   borderBottomColor: '#d4b896',
@@ -93,39 +94,7 @@ function Navigation() {
                   color: '#1a4d3a',
                 },
                 headerTitleAlign: 'left',
-                headerLeft: () => (
-                  <TouchableOpacity
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginLeft: 17,
-                      paddingVertical: 8,
-                      paddingHorizontal: 12,
-                      backgroundColor: '#ffffff',
-                      borderWidth: 1,
-                      borderColor: '#d4b896',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.1,
-                      shadowRadius: 3,
-                      elevation: 2,
-                    }}
-                    onPress={() => navigation.goBack()}
-                    activeOpacity={0.7}
-                  >
-                    <ArrowLeft size={18} color="#1a4d3a" strokeWidth={2} />
-                    <Text style={{
-                      fontSize: 12,
-                      fontWeight: '900',
-                      letterSpacing: 0.5,
-                      color: '#1a4d3a',
-                      marginLeft: 8,
-                      textTransform: 'uppercase',
-                    }}>
-                      TEAM TABS
-                    </Text>
-                  </TouchableOpacity>
-                ),
+                headerLeft: () => <BackToTeamTabsButton destination="Players" />,
                 headerTintColor: '#1a4d3a',
                 headerBackTitle: '',
                 headerShadowVisible: false,
@@ -149,39 +118,7 @@ function Navigation() {
                   color: '#1a4d3a',
                 },
                 headerTitleAlign: 'left',
-                headerLeft: () => (
-                  <TouchableOpacity
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginLeft: 16,
-                      paddingVertical: 8,
-                      paddingHorizontal: 12,
-                      backgroundColor: '#ffffff',
-                      borderWidth: 1,
-                      borderColor: '#d4b896',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.1,
-                      shadowRadius: 3,
-                      elevation: 2,
-                    }}
-                    onPress={() => navigation.goBack()}
-                    activeOpacity={0.7}
-                  >
-                    <ArrowLeft size={18} color="#1a4d3a" strokeWidth={2} />
-                    <Text style={{
-                      fontSize: 12,
-                      fontWeight: '900',
-                      letterSpacing: 0.5,
-                      color: '#1a4d3a',
-                      marginLeft: 8,
-                      textTransform: 'uppercase',
-                    }}>
-                      TEAM TABS
-                    </Text>
-                  </TouchableOpacity>
-                ),
+                headerLeft: () => <BackToTeamTabsButton destination="Match Center" />,
                 headerTintColor: '#1a4d3a',
                 headerBackTitle: '',
                 headerShadowVisible: false,
@@ -205,39 +142,7 @@ function Navigation() {
                   color: '#1a4d3a',
                 },
                 headerTitleAlign: 'left',
-                headerLeft: () => (
-                  <TouchableOpacity
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginLeft: 16,
-                      paddingVertical: 8,
-                      paddingHorizontal: 12,
-                      backgroundColor: '#ffffff',
-                      borderWidth: 1,
-                      borderColor: '#d4b896',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.1,
-                      shadowRadius: 3,
-                      elevation: 2,
-                    }}
-                    onPress={() => navigation.goBack()}
-                    activeOpacity={0.7}
-                  >
-                    <ArrowLeft size={18} color="#1a4d3a" strokeWidth={2} />
-                    <Text style={{
-                      fontSize: 12,
-                      fontWeight: '900',
-                      letterSpacing: 0.5,
-                      color: '#1a4d3a',
-                      marginLeft: 8,
-                      textTransform: 'uppercase',
-                    }}>
-                      DASHBOARD
-                    </Text>
-                  </TouchableOpacity>
-                ),
+                headerLeft: () => <BackToTeamTabsButton destination="Dashboard" />,
                 headerTintColor: '#1a4d3a',
                 headerBackTitle: '',
                 headerShadowVisible: false,

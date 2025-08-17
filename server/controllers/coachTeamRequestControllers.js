@@ -72,9 +72,9 @@ exports.rejectRequest = async (req, res) => {
   try {
     await knex('coach_team_requests')
       .where({ id })
-      .update({ status: 'rejected' });
+      .del(); // Delete the request instead of updating status
 
-    res.send({ success: true, message: 'Coach request rejected' });
+    res.send({ success: true, message: 'Coach request rejected and removed' });
   } catch (err) {
     console.error('Failed to reject coach request:', err);
     res.status(500).send({ success: false, message: 'Server error' });

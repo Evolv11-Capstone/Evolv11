@@ -19,6 +19,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useActiveTeam } from '../contexts/ActiveTeamContext';
 import { useUser } from '../contexts/UserContext';
 
+// Import components
+import LogoutButton from '../../components/LogoutButton';
+import BackToTeamTabsButton from '../../components/BackToTeamTabsButton';
+
 // Import team request adapters
 import {
   listPlayerTeamRequests,
@@ -61,6 +65,7 @@ function GrowthInsightsStack() {
         options={{ 
           headerShown: true,
           title: 'Match Feedback',
+          headerLeft: () => <BackToTeamTabsButton destination="Growth Insights" />,
           headerStyle: { 
             backgroundColor: '#f5f3f0', 
             elevation: 0, 
@@ -244,6 +249,9 @@ function CustomDrawerContent({ state, navigation }: DrawerContentComponentProps)
         <ArrowLeft size={20} color="#1a4d3a" />
         <Text style={styles.backText}>Back to Teams</Text>
       </TouchableOpacity>
+
+      {/* Logout Button */}
+      <LogoutButton />
     </DrawerContentScrollView>
   );
 }

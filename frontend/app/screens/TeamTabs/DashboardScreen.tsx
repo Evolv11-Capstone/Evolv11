@@ -238,9 +238,8 @@ export default function DashboardScreen() {
       // Trigger refresh for this and other relevant screens
       triggerDashboardRefresh();
     }
-    setRequests((prev) =>
-      prev.map((req) => (req.id === id ? { ...req, status: 'rejected' } : req))
-    );
+    // Remove the rejected request from the state since it's deleted on the backend
+    setRequests((prev) => prev.filter((req) => req.id !== id));
   };
 
   return (

@@ -3,7 +3,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, Alert, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft } from 'lucide-react-native';
 import { logoutUser } from '../adapters/authAdapters';
 import { useUser } from '../app/contexts/UserContext';
 import { useActiveTeam } from '../app/contexts/ActiveTeamContext'; // Import context
@@ -18,23 +17,43 @@ export default function LogoutButton() {
   const navigation = useNavigation<NavigationProp>();
 
   const handleLogout = async () => {
-    const [data, error] = await logoutUser();
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to log out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const [data, error] = await logoutUser();
 
-    if (error) {
-      Alert.alert('Logout Failed', error.message);
-      return;
-    }
+              if (error) {
+                Alert.alert('Logout Failed', error.message);
+                return;
+              }
 
-    // Clear both user and active team from global state
-    setUser(null);
-    setActiveTeamId(null);
-    setActiveTeamName(undefined);
+              // Clear both user and active team from global state
+              setUser(null);
+              setActiveTeamId(null);
+              setActiveTeamName(undefined);
 
-    // Reset navigation to unauthenticated state
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Landing' }],
-    });
+              // Reset navigation to unauthenticated state
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Landing' }],
+              });
+            } catch (error) {
+              Alert.alert('Error', 'Failed to log out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -42,42 +61,33 @@ export default function LogoutButton() {
       <TouchableOpacity
         style={styles.logoutButton}
         onPress={handleLogout}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
       >
-        <ArrowLeft size={20} color="#1a4d3a" strokeWidth={2} />
-        <Text style={styles.logoutText}>LOG OUT</Text>
+        <Text style={styles.logoutText}>Log Out</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-// Nike-inspired minimalist styles with app color palette
+// AccountSettings-inspired logout button styles
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20,
   },
   logoutButton: {
-    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    paddingVertical: 18,
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: '#f5f3f0',
-    borderWidth: 1,
-    borderColor: '#d4b896',
-    borderRadius: 0, // Sharp edges for Nike aesthetic
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 2,
+    borderColor: '#dc2626',
+    marginTop: 8,
   },
   logoutText: {
+    color: '#dc2626',
     fontSize: 16,
-    fontWeight: '900', // Ultra-bold Nike typography
+    fontWeight: '700',
     letterSpacing: 0.5,
-    color: '#1a4d3a',
-    marginLeft: 12,
     textTransform: 'uppercase',
   },
 });

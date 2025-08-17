@@ -36,11 +36,11 @@ exports.rejectRequest = async (req, res) => {
   const { id } = req.params;
 
   try {
-    await knex('player_team_requests') // Use knex to update the request status
+    await knex('player_team_requests') // Use knex to delete the request
       .where({ id })
-      .update({ status: 'rejected' });
+      .del(); // Delete the request instead of updating status
 
-    res.send({ success: true, message: 'Player request rejected' });
+    res.send({ success: true, message: 'Player request rejected and removed' });
   } catch (err) {
     console.error('Failed to reject player request:', err);
     res.status(500).send({ success: false, message: 'Server error' });
@@ -52,11 +52,11 @@ exports.rejectRequest = async (req, res) => {
   const { id } = req.params;
 
   try {
-    await knex('coach_team_requests') // Use knex to update the request status
+    await knex('coach_team_requests') // Use knex to delete the request
       .where({ id })
-      .update({ status: 'rejected' });
+      .del(); // Delete the request instead of updating status
 
-    res.send({ success: true, message: 'Coach request rejected' });
+    res.send({ success: true, message: 'Coach request rejected and removed' });
   } catch (err) {
     console.error('Failed to reject coach request:', err);
     res.status(500).send({ success: false, message: 'Server error' });
