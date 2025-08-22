@@ -47,7 +47,6 @@ app.use(express.static(path.join(__dirname, '../frontend/dist')));
 ///////////////////////////////
 // Route Imports
 ///////////////////////////////
-
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const teamRoutes = require('./routes/teamRoutes'); // ✅ now includes GET /:id/players
@@ -98,7 +97,6 @@ app.use('/api/players', playerRoutes); // includes GET /api/players/:playerId
 ///////////////////////////////
 // React Frontend Fallback
 ///////////////////////////////
-
 app.get('*', (req, res, next) => {
   if (req.originalUrl.startsWith('/api')) return next();
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));

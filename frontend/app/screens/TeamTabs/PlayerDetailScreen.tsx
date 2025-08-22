@@ -197,9 +197,9 @@ export default function PlayerDetailScreen() {
             overallRating={player.overall_rating ?? 50}
             stats={{
               // Goalkeeper-specific stats
-              diving: player.defense ?? 50,      // DIV - use defense as placeholder
-              handling: player.physical ?? 50,   // HAN - use physical as placeholder  
-              kicking: player.shooting ?? 50,    // KIC - use shooting as placeholder
+              diving: player.diving ?? 50,       // DIV - use actual diving stat
+              handling: player.handling ?? 50,   // HAN - use actual handling stat  
+              kicking: player.kicking ?? 50,     // KIC - use actual kicking stat
               passing: player.passing ?? 50,     // PAS - use existing passing stat
               coachGrade: player.coach_grade,
             }}
@@ -265,7 +265,7 @@ export default function PlayerDetailScreen() {
           <View style={styles.growthWrapper}>
             <Text style={styles.sectionTitle}>Player Development</Text>
             <Text style={styles.sectionSubtitle}>Attribute progression throughout the season</Text>
-            <GrowthChart playerId={playerId} />
+            <GrowthChart playerId={playerId} playerPosition={player?.position} />
           </View>
 
           <View style={styles.spiderWrapper}>

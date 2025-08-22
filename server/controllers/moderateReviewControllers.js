@@ -38,7 +38,11 @@ const getBaselineStatsFromSnapshots = async (trx, playerId, matchId) => {
         dribbling: previousSnapshot.dribbling,
         defense: previousSnapshot.defense,
         physical: previousSnapshot.physical,
-        coach_grade: previousSnapshot.coach_grade
+        coach_grade: previousSnapshot.coach_grade,
+        // Goalkeeper attributes
+        diving: previousSnapshot.diving,
+        handling: previousSnapshot.handling,
+        kicking: previousSnapshot.kicking
       };
     }
 
@@ -55,7 +59,11 @@ const getBaselineStatsFromSnapshots = async (trx, playerId, matchId) => {
         dribbling: initialSnapshot.dribbling,
         defense: initialSnapshot.defense,
         physical: initialSnapshot.physical,
-        coach_grade: initialSnapshot.coach_grade
+        coach_grade: initialSnapshot.coach_grade,
+        // Goalkeeper attributes
+        diving: initialSnapshot.diving,
+        handling: initialSnapshot.handling,
+        kicking: initialSnapshot.kicking
       };
     }
 
@@ -67,7 +75,11 @@ const getBaselineStatsFromSnapshots = async (trx, playerId, matchId) => {
       dribbling: 50,
       defense: 50,
       physical: 50,
-      coach_grade: 50
+      coach_grade: 50,
+      // Goalkeeper attributes
+      diving: 50,
+      handling: 50,
+      kicking: 50
     };
 
   } catch (error) {
@@ -79,7 +91,11 @@ const getBaselineStatsFromSnapshots = async (trx, playerId, matchId) => {
       dribbling: 50,
       defense: 50,
       physical: 50,
-      coach_grade: 50
+      coach_grade: 50,
+      // Goalkeeper attributes
+      diving: 50,
+      handling: 50,
+      kicking: 50
     };
   }
 };
@@ -113,88 +129,94 @@ const calculateAttributeUpdates = (currentStats, matchStats, playerPosition = nu
     kicking = 50
   } = currentStats;
 
-  // Calculate growth/decline based on performance with baseline expectations
-  // Positive growth for good performance, negative for poor performance
-  const baselinePenalty = -1.0; // Increased penalty for not meeting expectations
-  const severePenalty = -2.5; // Severe penalty for really poor performance
-  
-  const shootingGrowth = ((goals * 3.0 + chances_created * 0.8) * 0.2) + 
-    (goals === 0 && minutes_played > 45 ? baselinePenalty : 0); // Penalty for strikers/forwards with no goals
-  
-  const passingGrowth = ((assists * 2.8 + chances_created * 1.2) * 0.2) + 
-    (assists === 0 && chances_created === 0 && minutes_played > 45 ? baselinePenalty : 0); // Penalty for no creative contribution
-  
-  const dribblingGrowth = ((goals * 1 + assists * 0.8 + chances_created * 1) * 0.2) + 
+  // --- Tuned penalty magnitudes (softer, but still meaningful)
+  const baselinePenalty = -0.6;   // was -1.0
+  const severePenalty   = -1.5;   // was -2.5 (kept for future use)
+
+  // --- Tuned growth formulas (same logic/branches; just better weights)
+  // Shooting: goals drive most; creation gives smaller lift
+  const shootingGrowth =
+    ((goals * 3.2 + chances_created * 0.9) * 0.22) +
+    (goals === 0 && minutes_played > 45 ? baselinePenalty : 0);
+
+  // Passing: assists+creation weighted a bit higher; encourages chance creation
+  const passingGrowth =
+    ((assists * 3.0 + chances_created * 1.4) * 0.18) +
+    (assists === 0 && chances_created === 0 && minutes_played > 45 ? baselinePenalty : 0);
+
+  // Dribbling: creation-centric with modest goal/assist echo; penalty if totally inactive
+  const dribblingGrowth =
+    ((goals * 0.8 + assists * 0.7 + chances_created * 1.1) * 0.18) +
     (goals === 0 && assists === 0 && chances_created === 0 && minutes_played > 30 ? baselinePenalty : 0);
-  
-  const defenseGrowth = ((tackles * 2.0 + interceptions * 2.0 + saves * 2.5) * 0.2) + 
-    (tackles === 0 && interceptions === 0 && saves === 0 && minutes_played > 45 ? baselinePenalty : 0); // Penalty for inactive defense
-  
-  // Physical decline for lack of playing time, improvement for full matches
-  const physicalGrowth = (minutes_played / 90) * 1.0 - (minutes_played < 30 ? 1.5 : 0); // Significant decline if under 30 mins
-  
-  // Apply growth/decline with realistic constraints
+
+  // Defense: interceptions slightly > tackles; saves still counted but reduced (prevents odd boosts)
+  const defenseGrowth =
+    ((tackles * 2.0 + interceptions * 2.3 + saves * 0.8) * 0.22) +
+    (tackles === 0 && interceptions === 0 && saves === 0 && minutes_played > 45 ? baselinePenalty : 0);
+
+  // Physical: reward full games; softer penalty for <30'
+  const physicalGrowth = (minutes_played / 90) * 0.8 - (minutes_played < 30 ? 0.8 : 0);
+
+  // --- Same applyGrowth shape; slightly gentler declines
   const applyGrowth = (current, growth) => {
     if (growth >= 0) {
-      // Positive growth with diminishing returns for high stats
       const diminishingFactor = Math.max(0.1, (100 - current) / 100);
       return Math.min(100, current + (growth * diminishingFactor));
     } else {
-      // Negative growth (decline) with less protection to make decline more noticeable
-      const declineFactor = Math.max(0.6, current / 100); // Increased decline factor
-      return Math.max(10, current + (growth * declineFactor)); // Minimum rating of 10
+      const declineFactor = Math.max(0.5, current / 100); // was 0.6 min -> slightly gentler
+      return Math.max(10, current + (growth * declineFactor));
     }
   };
 
-  const newShooting = Math.round(applyGrowth(shooting, shootingGrowth));
-  const newPassing = Math.round(applyGrowth(passing, passingGrowth));
+  const newShooting  = Math.round(applyGrowth(shooting,  shootingGrowth));
+  const newPassing   = Math.round(applyGrowth(passing,   passingGrowth));
   const newDribbling = Math.round(applyGrowth(dribbling, dribblingGrowth));
-  const newDefense = Math.round(applyGrowth(defense, defenseGrowth));
-  const newPhysical = Math.round(applyGrowth(physical, physicalGrowth));
-  
-  // Coach grade with significant positive/negative impact
-  const coachGrowth = (coach_rating - coach_grade) * 0.2; // Even more impact
-  // Additional penalty for very poor coach ratings
-  const coachPenalty = coach_rating < 30 ? -2.0 : (coach_rating < 40 ? -1.0 : 0);
-  const newCoachGrade = Math.round(Math.min(100, Math.max(10, coach_grade + coachGrowth + coachPenalty)));
-  
-  // Calculate overall rating as weighted average
-  const newOverall = Math.round(
-    (newShooting * 0.2 + newPassing * 0.2 + newDribbling * 0.15 + 
-     newDefense * 0.2 + newPhysical * 0.15 + newCoachGrade * 0.1)
+  const newDefense   = Math.round(applyGrowth(defense,   defenseGrowth));
+  const newPhysical  = Math.round(applyGrowth(physical,  physicalGrowth));
+
+  // Coach grade: still meaningful, less swingy; softer extra penalties
+  const coachGrowth  = (coach_rating - coach_grade) * 0.15; // was 0.2
+  const coachPenalty = coach_rating < 30 ? -1.5 : (coach_rating < 40 ? -0.7 : 0); // was -2.0 / -1.0
+  const newCoachGrade = Math.round(
+    Math.min(100, Math.max(10, coach_grade + coachGrowth + coachPenalty))
   );
 
-  // Goalkeeper-specific calculations (only for GK position)
+  // Overall rating: keep your same weights, slightly rebalanced toward defense/physical
+  const newOverall = Math.round(
+    (newShooting * 0.18 + newPassing * 0.20 + newDribbling * 0.14 +
+     newDefense * 0.22 + newPhysical * 0.16 + newCoachGrade * 0.10)
+  );
+
+  // --- Goalkeeper branch (same logic, tuned weights/expectations)
   let newDiving = diving;
   let newHandling = handling;
   let newKicking = kicking;
 
   if (playerPosition === 'GK') {
-    console.log('🥅 Calculating goalkeeper-specific attributes for GK position');
-    
-    // Diving growth based on saves performance
-    const divingGrowth = (saves * 2.5) * 0.3 + 
-      (saves === 0 && minutes_played > 45 ? -1.5 : 0); // Penalty for no saves when playing
-    
-    // Kicking growth based on kick success rate
-    const totalKicks = successful_goalie_kicks + failed_goalie_kicks;
-    const kickSuccessRate = totalKicks > 0 ? successful_goalie_kicks / totalKicks : 0.5;
-    const kickingGrowth = totalKicks > 0 ? 
-      ((kickSuccessRate - 0.7) * 10) + (totalKicks * 0.1) : // Base expectation of 70% success rate
-      (minutes_played > 45 ? -1.0 : 0); // Penalty if no kicks attempted
-    
-    // Handling growth based on throw success rate
-    const totalThrows = successful_goalie_throws + failed_goalie_throws;
-    const throwSuccessRate = totalThrows > 0 ? successful_goalie_throws / totalThrows : 0.5;
-    const handlingGrowth = totalThrows > 0 ? 
-      ((throwSuccessRate - 0.8) * 8) + (totalThrows * 0.1) : // Base expectation of 80% success rate
-      (minutes_played > 45 ? -1.0 : 0); // Penalty if no throws attempted
-
+    // Diving: reward saves, but don't hammer keepers for quiet games
+    const divingGrowth =
+      (saves * 1.8) * 0.4 +
+      (saves === 0 && minutes_played > 45 ? -0.6 : 0); // was -1.5
     newDiving = Math.round(applyGrowth(diving, divingGrowth));
-    newHandling = Math.round(applyGrowth(handling, handlingGrowth));
+
+    // Kicking: expectation ~75% success; volume still helps a bit
+    const totalKicks = successful_goalie_kicks + failed_goalie_kicks;
+    const kickSuccessRate = totalKicks > 0 ? successful_goalie_kicks / totalKicks : 0.75;
+    const kickingGrowth = totalKicks > 0
+      ? ((kickSuccessRate - 0.75) * 12) + (totalKicks * 0.06)
+      : (minutes_played > 45 ? -0.5 : 0); // was -1.0
     newKicking = Math.round(applyGrowth(kicking, kickingGrowth));
 
-    console.log(`🥅 GK Attribute Updates: Diving ${diving}→${newDiving}, Handling ${handling}→${newHandling}, Kicking ${kicking}→${newKicking}`);
+    // Handling: expectation ~85% success; volume slight boost
+    const totalThrows = successful_goalie_throws + failed_goalie_throws;
+    const throwSuccessRate = totalThrows > 0 ? successful_goalie_throws / totalThrows : 0.85;
+    const handlingGrowth = totalThrows > 0
+      ? ((throwSuccessRate - 0.85) * 10) + (totalThrows * 0.05)
+      : (minutes_played > 45 ? -0.5 : 0); // was -1.0
+    newHandling = Math.round(applyGrowth(handling, handlingGrowth));
+
+    // (Keep your log lines as-is if you want)
+    // console.log(`🥅 GK Attribute Updates: Diving ${diving}→${newDiving}, Handling ${handling}→${newHandling}, Kicking ${kicking}→${newKicking}`);
   }
 
   return {
@@ -212,6 +234,7 @@ const calculateAttributeUpdates = (currentStats, matchStats, playerPosition = nu
   };
 };
 
+
 /**
  * Recalculate all player snapshots that occur after the given match chronologically
  * @param {Object} trx - Knex transaction object
@@ -224,54 +247,66 @@ const recalculateSubsequentSnapshots = async (trx, playerId, currentMatchId, cur
   try {
     console.log(`🔄 Starting chain recalculation for player ${playerId} after match ${currentMatchId}`);
 
-    // Get the current match date to find subsequent matches
-    const currentMatch = await trx('matches')
-      .where({ id: currentMatchId })
-      .first();
+    // 1) Player and position context
+    const player = await trx('players').where({ id: playerId }).first();
+    const playerPosition = player?.position || null;
 
+    // 2) Current match (anchor)
+    const currentMatch = await trx('matches').where({ id: currentMatchId }).first();
     if (!currentMatch) {
       console.log(`⚠️ Current match ${currentMatchId} not found, skipping chain recalculation`);
-      return currentMatchAttributes; // Return the current match attributes if no match found
+      return currentMatchAttributes;
     }
 
-    // Get all future matches for this player that have moderate_reviews, ordered chronologically
+    // 3) Fetch all future reviews in a deterministic order (date, then match_id)
     const futureMatchReviews = await trx('moderate_reviews')
       .join('matches', 'moderate_reviews.match_id', 'matches.id')
       .where('moderate_reviews.player_id', playerId)
       .where('matches.match_date', '>', currentMatch.match_date)
-      .select(
-        'moderate_reviews.*',
-        'matches.match_date'
-      )
-      .orderBy('matches.match_date', 'asc');
+      .select('moderate_reviews.*', 'matches.match_date')
+      .orderBy([{ column: 'matches.match_date', order: 'asc' }, { column: 'moderate_reviews.match_id', order: 'asc' }]);
 
     if (futureMatchReviews.length === 0) {
       console.log(`✅ No future matches found for player ${playerId}, chain recalculation complete`);
-      // Update the player's current attributes to the latest snapshot
       await trx('players')
         .where({ id: playerId })
         .update({
-          shooting: currentMatchAttributes.shooting,
-          passing: currentMatchAttributes.passing,
-          dribbling: currentMatchAttributes.dribbling,
-          defense: currentMatchAttributes.defense,
-          physical: currentMatchAttributes.physical,
-          coach_grade: currentMatchAttributes.coach_grade,
+          shooting:       currentMatchAttributes.shooting,
+          passing:        currentMatchAttributes.passing,
+          dribbling:      currentMatchAttributes.dribbling,
+          defense:        currentMatchAttributes.defense,
+          physical:       currentMatchAttributes.physical,
+          coach_grade:    currentMatchAttributes.coach_grade,
           overall_rating: currentMatchAttributes.overall_rating,
+          // GK
+          diving:         currentMatchAttributes.diving,
+          handling:       currentMatchAttributes.handling,
+          kicking:        currentMatchAttributes.kicking,
           updated_at: trx.fn.now()
         });
-      return currentMatchAttributes; // Return the current match attributes as final
+      return currentMatchAttributes;
     }
 
     console.log(`📊 Found ${futureMatchReviews.length} future matches to recalculate for player ${playerId}`);
 
-    // Start with the current match's attributes as the baseline for the next match
-    let previousAttributes = currentMatchAttributes;
+    // 4) Preload existing snapshots for these matches to avoid per-iteration reads
+    const futureMatchIds = futureMatchReviews.map(r => r.match_id);
+    const existingSnapshots = await trx('player_snapshots')
+      .where({ player_id: playerId })
+      .whereIn('match_id', futureMatchIds)
+      .select('match_id');
 
-    // Process each future match chronologically
+    const hasSnapshot = new Set(existingSnapshots.map(s => s.match_id));
+
+    // 5) Iterate in memory, compute new attributes, and build rows to upsert
+    let previousAttributes = { ...currentMatchAttributes };
+    const snapshotRows = [];
+
     for (const review of futureMatchReviews) {
-      console.log(`🔄 Processing match ${review.match_id} (${review.match_date}) for player ${playerId}`);
-      
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`🔄 Processing match ${review.match_id} (${review.match_date}) for player ${playerId}`);
+      }
+
       const matchStats = {
         goals: review.goals || 0,
         assists: review.assists || 0,
@@ -280,75 +315,85 @@ const recalculateSubsequentSnapshots = async (trx, playerId, currentMatchId, cur
         interceptions: review.interceptions || 0,
         chances_created: review.chances_created || 0,
         minutes_played: review.minutes_played || 0,
-        coach_rating: review.coach_rating || 50
+        coach_rating: review.coach_rating || 50,
+        // GK-specific
+        successful_goalie_kicks:  review.successful_goalie_kicks  || 0,
+        failed_goalie_kicks:      review.failed_goalie_kicks      || 0,
+        successful_goalie_throws: review.successful_goalie_throws || 0,
+        failed_goalie_throws:     review.failed_goalie_throws     || 0
       };
 
-      // Calculate new attributes based on the previous match's snapshot
-      const newAttributes = calculateAttributeUpdates(previousAttributes, matchStats);
+      const newAttributes = calculateAttributeUpdates(previousAttributes, matchStats, playerPosition);
 
-      // Update or create the snapshot for this match
-      const existingSnapshot = await trx('player_snapshots')
-        .where({ player_id: playerId, match_id: review.match_id })
-        .first();
+      snapshotRows.push({
+        player_id: playerId,
+        match_id:  review.match_id,
+        shooting:  newAttributes.shooting,
+        passing:   newAttributes.passing,
+        dribbling: newAttributes.dribbling,
+        defense:   newAttributes.defense,
+        physical:  newAttributes.physical,
+        coach_grade:    newAttributes.coach_grade,
+        overall_rating: newAttributes.overall_rating,
+        // GK
+        diving:    newAttributes.diving,
+        handling:  newAttributes.handling,
+        kicking:   newAttributes.kicking,
+        // Use match date for chronological accuracy; also set updated_at
+        created_at: review.match_date,
+        updated_at: trx.fn.now()
+      });
 
-      if (existingSnapshot) {
-        // Update existing snapshot with aligned timestamp
-        await trx('player_snapshots')
-          .where({ player_id: playerId, match_id: review.match_id })
-          .update({
-            shooting: newAttributes.shooting,
-            passing: newAttributes.passing,
-            dribbling: newAttributes.dribbling,
-            defense: newAttributes.defense,
-            physical: newAttributes.physical,
-            coach_grade: newAttributes.coach_grade,
-            overall_rating: newAttributes.overall_rating,
-            created_at: review.match_date // Align with match date
-          });
-        console.log(`🔄 Updated snapshot for match ${review.match_id} (${review.match_date})`);
-      } else {
-        // Create new snapshot with aligned timestamp
-        await trx('player_snapshots')
-          .insert({
-            player_id: playerId,
-            match_id: review.match_id,
-            shooting: newAttributes.shooting,
-            passing: newAttributes.passing,
-            dribbling: newAttributes.dribbling,
-            defense: newAttributes.defense,
-            physical: newAttributes.physical,
-            coach_grade: newAttributes.coach_grade,
-            overall_rating: newAttributes.overall_rating,
-            created_at: review.match_date // Use match date for chronological accuracy
-          });
-        console.log(`✅ Created new snapshot for match ${review.match_id} (${review.match_date})`);
-      }
-
-      // Use this match's attributes as the baseline for the next match
       previousAttributes = newAttributes;
     }
 
-    // Update the player's current attributes to reflect the final state after all recalculations
+    // 6) Bulk UPSERT snapshots (insert-or-update) to avoid per-row branch
+    // Requires Postgres and a unique constraint on (player_id, match_id)
+    // CREATE UNIQUE INDEX ON player_snapshots(player_id, match_id);
+    if (snapshotRows.length > 0) {
+      await trx('player_snapshots')
+        .insert(snapshotRows)
+        .onConflict(['player_id', 'match_id'])
+        .merge({
+          shooting: trx.raw('EXCLUDED.shooting'),
+          passing: trx.raw('EXCLUDED.passing'),
+          dribbling: trx.raw('EXCLUDED.dribbling'),
+          defense: trx.raw('EXCLUDED.defense'),
+          physical: trx.raw('EXCLUDED.physical'),
+          coach_grade: trx.raw('EXCLUDED.coach_grade'),
+          overall_rating: trx.raw('EXCLUDED.overall_rating'),
+          diving: trx.raw('EXCLUDED.diving'),
+          handling: trx.raw('EXCLUDED.handling'),
+          kicking: trx.raw('EXCLUDED.kicking'),
+          created_at: trx.raw('EXCLUDED.created_at'), // keep aligned to match_date
+          updated_at: trx.raw('EXCLUDED.updated_at')
+        });
+    }
+
+    // 7) Update player's current attributes with the final state
     await trx('players')
       .where({ id: playerId })
       .update({
-        shooting: previousAttributes.shooting,
-        passing: previousAttributes.passing,
-        dribbling: previousAttributes.dribbling,
-        defense: previousAttributes.defense,
-        physical: previousAttributes.physical,
-        coach_grade: previousAttributes.coach_grade,
+        shooting:       previousAttributes.shooting,
+        passing:        previousAttributes.passing,
+        dribbling:      previousAttributes.dribbling,
+        defense:        previousAttributes.defense,
+        physical:       previousAttributes.physical,
+        coach_grade:    previousAttributes.coach_grade,
         overall_rating: previousAttributes.overall_rating,
+        // GK
+        diving:         previousAttributes.diving,
+        handling:       previousAttributes.handling,
+        kicking:        previousAttributes.kicking,
         updated_at: trx.fn.now()
       });
 
     console.log(`✅ Chain recalculation complete for player ${playerId}. Final attributes updated.`);
-    
-    return previousAttributes; // Return the final attributes
+    return previousAttributes;
 
   } catch (error) {
     console.error(`❌ Error during chain recalculation for player ${playerId}:`, error);
-    throw error; // Re-throw to trigger transaction rollback
+    throw error;
   }
 };
 
@@ -459,6 +504,10 @@ const submitPlayerMatchStats = async (req, res) => {
 
     // Calculate new player attributes using baseline stats from snapshots
     const newAttributes = calculateAttributeUpdates(baselineStats, matchStats, currentPlayer.position);
+    console.log('🔍 NEW ATTRIBUTES CALCULATED:', newAttributes);
+    console.log('🏥 BASELINE STATS:', baselineStats);
+    console.log('📊 MATCH STATS:', matchStats);
+    console.log('🥅 PLAYER POSITION:', currentPlayer.position);
 
     // Get the current match for timestamp alignment
     const currentMatch = await trx('matches')

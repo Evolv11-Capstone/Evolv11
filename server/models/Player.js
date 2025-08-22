@@ -13,6 +13,9 @@ class Player {
   this.defense = data.defense;
   this.physical = data.physical;
   this.coach_grade = data.coach_grade; // ✅ Include this
+  this.diving = data.diving; // ✅ Goalkeeper attribute
+  this.handling = data.handling; // ✅ Goalkeeper attribute
+  this.kicking = data.kicking; // ✅ Goalkeeper attribute
   this.created_at = data.created_at;
 
   // Joined from users table
@@ -58,6 +61,9 @@ class Player {
       'players.defense',
       'players.physical',
       'players.coach_grade',
+      'players.diving',
+      'players.handling',
+      'players.kicking',
       'players.created_at',
       'users.name',
       'users.role',

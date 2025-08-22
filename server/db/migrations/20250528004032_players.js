@@ -37,9 +37,6 @@ exports.up = function (knex) {
 
     table.string("position").defaultTo("TBD"); // Player's position (e.g. Forward, Midfielder, Defender, Goalkeeper)
 
-    table.string("coach_feedback").defaultTo(""); // Coach's feedback on player performance
-    table.string("ai_suggestions").defaultTo(""); // AI-generated suggestions for player improvement
-
     table.timestamps(true, true);
   });
 };
