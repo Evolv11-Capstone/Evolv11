@@ -1,0 +1,43 @@
+export interface TeamPlayer {
+  id: number;                     // Player ID (players.id)
+  user_id?: number;               // Optional for clarity
+  name: string;
+  nationality?: string;
+  role: string;
+  team_id: number;
+  image_url?: string;
+  position?: string;
+  overall_rating?: number;
+  
+  shooting?: number;
+  passing?: number;
+  dribbling?: number;
+  defense?: number;
+  physical?: number;              // ✅ Replaces stamina
+  coach_grade?: number;
+  // Goalkeeper attributes
+  diving?: number;
+  handling?: number;
+  kicking?: number;
+  created_at?: string;
+}
+
+export interface ModerateStats {
+  goals: number;
+  assists: number;
+  saves: number;
+  tackles: number;
+  interceptions: number;
+  chances_created: number;
+  minutes_played: number;
+  coach_rating: number;
+  // Goalkeeper-specific stats
+  successful_goalie_kicks?: number;
+  failed_goalie_kicks?: number;
+  successful_goalie_throws?: number;
+  failed_goalie_throws?: number;
+}
+
+export interface UpdatePositionPayload {
+  position: string;
+}
